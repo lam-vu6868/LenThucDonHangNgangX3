@@ -23,6 +23,14 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str 
 
+class UserProfileUpdate(BaseModel):
+    """Schema for updating user profile"""
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    date_of_birth: Optional[date] = None
+    gender: Optional[str] = None
+    dietary_preferences: Optional[str] = None
+
 class User(UserBase):
     id: int
     is_active: bool

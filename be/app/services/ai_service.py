@@ -192,3 +192,122 @@ Trả về JSON (KHÔNG markdown):
         return suggestions
     except Exception as e:
         raise Exception(f"Lỗi khi tìm kiếm món ăn: {str(e)}")
+
+async def suggest_weekly_meal_plan_with_recipes(user_data: dict) -> dict:
+    """
+    Tạo thực đơn 7 ngày KÈM THEO CÔNG THỨC CHI TIẾT để lưu vào database
+    
+    Args:
+        user_data: {
+            "gender": "male",
+            "weight": 70,
+            "height": 175,
+            "date_of_birth": "2000-01-15",
+            "dietary_preferences": "vegetarian",
+            "activity_level": "moderate",
+            "goal": "maintain",  # maintain, lose, gain
+            "notes": "Muốn nhiều rau xanh"
+        }
+    
+    Returns:
+        {
+            "total_calories_per_day": 2200,
+            "recipes": [list of full recipe objects],
+            "meal_plan": [7 days with breakfast/lunch/dinner]
+        }
+    """
+    age = calculate_age(date.fromisoformat(user_data["date_of_birth"]))
+    bmr = calculate_bmr(user_data["gender"], user_data["weight"], user_data["height"], age)
+    
+    # Tính TDEE
+    activity_multipliers = {
+        "sedentary": 1.2,
+        "light": 1.375,
+        "moderate": 1.55,
+        "active": 1.725,
+        "very_active": 1.9
+    }
+    tdee = bmr * activity_multipliers.get(user_data.get("activity_level", "moderate"), 1.55)
+    
+    # Điều chỉnh theo mục tiêu
+    goal_adjustments = {
+        "maintain": 0,
+        "lose": -500,
+        "gain": 500
+    }
+    target_calories = round(tdee + goal_adjustments.get(user_data.get("goal", "maintain"), 0))
+    
+    prompt = f"""
+Bạn là chuyên gia dinh dưỡng và đầu bếp chuyên nghiệp. Tạo thực đơn 7 ngày KÈM CÔNG THỨC CHI TIẾT cho:
+
+**Thông tin người dùng:**
+- Giới tính: {user_data["gender"]}
+- Cân nặng: {user_data["weight"]}kg
+- Chiều cao: {user_data["height"]}cm
+- Tuổi: {age}
+- BMR: {bmr} kcal/ngày
+- TDEE: {round(tdee)} kcal/ngày
+- Mục tiêu: {user_data.get("goal", "maintain")}
+- Calories mục tiêu: {target_calories} kcal/ngày
+- Hạn chế ăn uống: {user_data.get("dietary_preferences", "Không có")}
+- Ghi chú thêm: {user_data.get("notes", "Không có")}
+
+**YÊU CẦU QUAN TRỌNG:**
+1. Tạo CÔNG THỨC ĐẦY ĐỦ cho mỗi món (nguyên liệu, cách nấu, dinh dưỡng)
+2. Mỗi món PHẢI có tên KHÁC NHAU (không trùng lặp)
+3. Cân đối dinh dưỡng theo tỷ lệ: 30% protein, 50% carbs, 20% fat
+4. Món ăn phù hợp văn hóa Việt Nam
+5. Dễ nấu, nguyên liệu dễ kiếm
+
+Trả về JSON với cấu trúc SAU (KHÔNG thêm markdown ```json):
+{{
+    "total_calories_per_day": {target_calories},
+    "recipes": [
+        {{
+            "name": "Cơm gà hấp nấm đông cô",
+            "description": "Món cơm gà hấp thơm ngon, giàu protein",
+            "instructions": "Bước 1: Ướp gà với muối, tiêu\\nBước 2: Hấp gà với nấm 20 phút\\nBước 3: Nấu cơm và trộn đều",
+            "servings": 1,
+            "prep_time": 30,
+            "ingredients": [
+                {{"name": "Gạo", "amount": 100, "unit": "gram"}},
+                {{"name": "Thịt gà", "amount": 150, "unit": "gram"}},
+                {{"name": "Nấm đông cô", "amount": 50, "unit": "gram"}}
+            ],
+            "nutrition": {{
+                "calories": 450,
+                "protein": 35,
+                "carbs": 55,
+                "fat": 10
+            }},
+            "tags": "Lunch,High-Protein"
+        }}
+    ],
+    "meal_plan": [
+        {{
+            "day": "Monday",
+            "breakfast": {{"name": "Cháo yến mạch chuối", "calories": 350, "protein": 12, "carbs": 60, "fat": 8}},
+            "lunch": {{"name": "Cơm gà hấp nấm đông cô", "calories": 450, "protein": 35, "carbs": 55, "fat": 10}},
+            "dinner": {{"name": "Bún cá dinh dưỡng", "calories": 400, "protein": 28, "carbs": 50, "fat": 12}}
+        }}
+    ]
+}}
+
+LƯU Ý:
+- PHẢI có đủ 7 ngày (Monday -> Sunday)
+- Mỗi món trong "recipes" phải khớp với tên món trong "meal_plan"
+- Tổng calories/ngày = breakfast + lunch + dinner ≈ {target_calories}
+- Ingredients phải có đơn vị cụ thể (gram, ml, cái...)
+"""
+    
+    try:
+        response = model.generate_content(prompt)
+        result_text = response.text.strip()
+        
+        if result_text.startswith("```json"):
+            result_text = result_text.replace("```json", "").replace("```", "").strip()
+        
+        result = json.loads(result_text)
+        return result
+    except Exception as e:
+        raise Exception(f"Lỗi khi tạo thực đơn: {str(e)}")

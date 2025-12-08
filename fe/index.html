@@ -3,25 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Planner Dashboard</title>
+    <title>Đăng nhập - Meal Planner</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
 </head>
-<body>
-    <div class="container">
-        <h1>Quản lý thực đơn hàng ngày</h1>
-        <nav>
-            <a href="index.html">Trang chủ</a> |
-            <a href="planner.html">Lịch ăn uống</a> |
-            <a href="recipes.html">Công thức</a> |
-            <a href="shopping.html">Đi chợ</a> |
-            <a href="ai-generator.html">AI Gợi ý</a>
-        </nav>
-        <hr>
-        <div id="app">
-            <p>Chào mừng bạn đến với ứng dụng Meal Planner.</p>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1>🍽️ Meal Planner</h1>
+                <p>Quản lý thực đơn thông minh với AI</p>
+            </div>
+
+            <!-- TAB SWITCHER -->
+            <div class="auth-tabs">
+                <button class="tab-btn active" data-tab="login">Đăng nhập</button>
+                <button class="tab-btn" data-tab="register">Đăng ký</button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <div id="login-form" class="auth-form active">
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>📧 Email</label>
+                        <input type="email" id="login-email" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>🔒 Mật khẩu</label>
+                        <input type="password" id="login-password" placeholder="Nhập mật khẩu" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Đăng nhập</button>
+                </form>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div id="register-form" class="auth-form">
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>📧 Email</label>
+                            <input type="email" id="reg-email" placeholder="your@email.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>👤 Họ tên</label>
+                            <input type="text" id="reg-name" placeholder="Nguyễn Văn A" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>🔒 Mật khẩu</label>
+                            <input type="password" id="reg-password" placeholder="Tối thiểu 6 ký tự" required>
+                        </div>
+                        <div class="form-group">
+                            <label>⚧ Giới tính</label>
+                            <select id="reg-gender">
+                                <option value="male">Nam</option>
+                                <option value="female">Nữ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>📅 Ngày sinh</label>
+                            <input type="date" id="reg-dob" required>
+                        </div>
+                        <div class="form-group">
+                            <label>📏 Chiều cao (cm)</label>
+                            <input type="number" id="reg-height" placeholder="170" min="100" max="250">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>⚖️ Cân nặng (kg)</label>
+                            <input type="number" id="reg-weight" placeholder="65" min="30" max="200">
+                        </div>
+                        <div class="form-group">
+                            <label>🥗 Chế độ ăn</label>
+                            <select id="reg-diet">
+                                <option value="">Không hạn chế</option>
+                                <option value="vegetarian">Ăn chay</option>
+                                <option value="vegan">Thuần chay</option>
+                                <option value="gluten_free">Không gluten</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Đăng ký</button>
+                </form>
+            </div>
+
+            <div id="message" class="message"></div>
         </div>
     </div>
+
     <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/utils.js"></script>
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+                
+                btn.classList.add('active');
+                document.getElementById(tab + '-form').classList.add('active');
+            });
+        });
+
+        // Handle Login
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) {
+                showMessage('Vui lòng nhập đầy đủ email và mật khẩu!', 'error');
+                return;
+            }
+
+            try {
+                showMessage('Đang đăng nhập...', 'info');
+                const response = await apiLogin(email, password);
+                
+                // Lưu token
+                localStorage.setItem('token', response.access_token);
+                localStorage.setItem('user_email', email);
+                
+                showMessage('✅ Đăng nhập thành công! Đang chuyển trang...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                // Hiển thị lỗi cụ thể
+                let errorMsg = 'Đăng nhập thất bại!';
+                if (error.message.includes('401') || error.message.includes('không chính xác')) {
+                    errorMsg = '❌ Email hoặc mật khẩu không đúng! Vui lòng thử lại.';
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    errorMsg = '⚠️ Không kết nối được server. Vui lòng kiểm tra backend đang chạy!';
+                } else {
+                    errorMsg = '❌ ' + (error.message || 'Lỗi không xác định');
+                }
+                
+                showMessage(errorMsg, 'error');
+            }
+        }
+
+        // Handle Register
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const confirmPassword = document.getElementById('reg-confirm-password')?.value;
+            
+            // Validation
+            if (!email || !password) {
+                showMessage('❌ Vui lòng nhập đầy đủ email và mật khẩu!', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showMessage('❌ Mật khẩu phải có ít nhất 6 ký tự!', 'error');
+                return;
+            }
+            
+            const userData = {
+                email: email,
+                full_name: document.getElementById('reg-name').value,
+                password: password,
+                gender: document.getElementById('reg-gender').value,
+                date_of_birth: document.getElementById('reg-dob').value,
+                height: parseFloat(document.getElementById('reg-height').value) || null,
+                weight: parseFloat(document.getElementById('reg-weight').value) || null,
+                dietary_preferences: document.getElementById('reg-diet').value || null
+            };
+
+            try {
+                showMessage('Đang tạo tài khoản...', 'info');
+                await apiRegister(userData);
+                
+                showMessage('✅ Đăng ký thành công! Vui lòng đăng nhập.', 'success');
+                
+                // Chuyển sang tab login và điền sẵn email
+                setTimeout(() => {
+                    document.querySelector('[data-tab="login"]').click();
+                    document.getElementById('login-email').value = userData.email;
+                    document.getElementById('login-password').focus();
+                }, 1500);
+            } catch (error) {
+                console.error('Register error:', error);
+                
+                // Hiển thị lỗi cụ thể
+                let errorMsg = 'Đăng ký thất bại!';
+                if (error.message.includes('đã được sử dụng') || error.message.includes('already')) {
+                    errorMsg = '❌ Email này đã được đăng ký! Vui lòng đăng nhập hoặc dùng email khác.';
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    errorMsg = '⚠️ Không kết nối được server. Vui lòng kiểm tra backend đang chạy!';
+                } else {
+                    errorMsg = '❌ ' + (error.message || 'Lỗi không xác định');
+                }
+                
+                showMessage(errorMsg, 'error');
+            }
+        }
+
+        function showMessage(text, type = 'info') {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = 'message ' + type;
+            msg.style.display = 'block';
+        }
+
+        // Check if already logged in
+        if (localStorage.getItem('token')) {
+            window.location.href = 'dashboard.html';
+        }
+    </script>
 </body>
 </html>

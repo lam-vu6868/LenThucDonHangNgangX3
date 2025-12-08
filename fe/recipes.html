@@ -3,25 +3,1026 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Planner Dashboard</title>
+    <title>Công thức - Meal Planner</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Quản lý thực đơn hàng ngày</h1>
-        <nav>
-            <a href="index.html">Quản lý công thức</a> |
-            <a href="planner.html">Lịch ăn uống</a> |
-            <a href="recipes.html">Công thức</a> |
-            <a href="shopping.html">Đi chợ</a> |
-            <a href="ai-generator.html">AI Gợi ý</a>
-        </nav>
-        <hr>
-        <div id="app">
-            <p>Chào mừng bạn đến với ứng dụng Meal Planner.</p>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🍽️ Meal Planner</h2>
+                <div class="user-info">
+                    <p><strong id="user-email">user@example.com</strong></p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html"><span>🏠</span> Dashboard</a></li>
+                    <li><a href="recipes.html" class="active"><span>📖</span> Công thức</a></li>
+                    <li><a href="planner.html"><span>📅</span> Lịch ăn</a></li>
+                    <li><a href="shopping.html"><span>🛒</span> Shopping List</a></li>
+                    <li><a href="ai-generator.html"><span>✨</span> AI Generator</a></li>
+                    <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <div class="page-header">
+                    <h1>📖 Công thức của tôi</h1>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" onclick="showAIRecipeModal()">✨ AI tạo công thức</button>
+                        <button class="btn btn-primary" onclick="showCreateModal()">➕ Thêm công thức</button>
+                    </div>
+                </div>
+
+                <!-- Search & Filter -->
+                <div class="search-section">
+                    <input type="text" id="search-input" placeholder="🔍 Tìm kiếm công thức..." class="search-input">
+                    
+                    <div class="filters">
+                        <select id="filter-category" onchange="loadRecipes()">
+                            <option value="">Tất cả loại</option>
+                            <option value="Breakfast">Sáng</option>
+                            <option value="Lunch">Trưa</option>
+                            <option value="Dinner">Tối</option>
+                            <option value="Snack">Snack</option>
+                        </select>
+                        
+                        <select id="filter-diet" onchange="loadRecipes()">
+                            <option value="">Chế độ ăn</option>
+                            <option value="vegetarian">Chay</option>
+                            <option value="vegan">Thuần chay</option>
+                            <option value="halal">Halal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Recipe Cards -->
+                <div id="recipes-grid" class="recipes-grid">
+                    <div class="loading">Đang tải...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- AI Recipe Generator Modal -->
+    <div id="ai-recipe-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✨ AI tạo công thức</h2>
+                <button class="close-btn" onclick="closeAIRecipeModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Tabs -->
+                <div class="ai-tabs">
+                    <button class="tab-btn active" onclick="switchAITab('ingredients')">Từ nguyên liệu</button>
+                    <button class="tab-btn" onclick="switchAITab('description')">Từ mô tả</button>
+                </div>
+                
+                <!-- Tab: From Ingredients -->
+                <div id="ai-tab-ingredients" class="ai-tab-content active">
+                    <div class="form-group">
+                        <label>Nguyên liệu có sẵn (cách nhau bằng dấu phẩy):</label>
+                        <textarea id="ai-ingredients" rows="3" placeholder="VD: gà, khoai tây, hành, tỏi, ớt"></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="generateRecipeFromIngredients()">
+                        ✨ Tạo công thức
+                    </button>
+                </div>
+                
+                <!-- Tab: From Description -->
+                <div id="ai-tab-description" class="ai-tab-content">
+                    <div class="form-group">
+                        <label>Mô tả món ăn muốn tạo:</label>
+                        <textarea id="ai-description" rows="3" placeholder="VD: Món Việt Nam, giàu protein, nấu dưới 30 phút, ít cay"></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="generateRecipeFromDescription()">
+                        ✨ Tạo công thức
+                    </button>
+                </div>
+                
+                <div id="ai-recipe-result" style="margin-top: 20px;"></div>
+            </div>
         </div>
     </div>
+
+    <!-- Create/Edit Recipe Modal -->
+    <div id="recipe-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Thêm công thức mới</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <form id="recipe-form" onsubmit="saveRecipe(event)">
+                <div class="form-group">
+                    <label>Tên món ăn *</label>
+                    <input type="text" id="recipe-name" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Loại *</label>
+                        <select id="recipe-category" required>
+                            <option value="Breakfast">Sáng</option>
+                            <option value="Lunch">Trưa</option>
+                            <option value="Dinner">Tối</option>
+                            <option value="Snack">Snack</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Thời gian (phút) *</label>
+                        <input type="number" id="recipe-time" required min="1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Mô tả</label>
+                    <textarea id="recipe-description" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Hướng dẫn *</label>
+                    <textarea id="recipe-instructions" rows="5" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Chế độ ăn</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="vegetarian"> Chay</label>
+                        <label><input type="checkbox" value="vegan"> Thuần chay</label>
+                        <label><input type="checkbox" value="gluten_free"> Không gluten</label>
+                        <label><input type="checkbox" value="halal"> Halal</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Nguyên liệu *</label>
+                    <div id="ingredients-list">
+                        <div class="ingredient-item">
+                            <input type="text" placeholder="Tên nguyên liệu" class="ing-name" required>
+                            <input type="number" placeholder="Số lượng" class="ing-amount" step="0.1" required>
+                            <input type="text" placeholder="Đơn vị" class="ing-unit" required>
+                            <button type="button" class="btn-remove" onclick="removeIngredient(this)">🗑️</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="addIngredient()">➕ Thêm nguyên liệu</button>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary">💾 Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Recipe Detail Modal -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="detail-name">Tên món</h2>
+                <button class="close-btn" onclick="closeDetailModal()">&times;</button>
+            </div>
+            
+            <div id="detail-content" class="recipe-detail">
+                <!-- Content loaded dynamically -->
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDetailModal()">Đóng</button>
+                <button class="btn btn-primary" onclick="editRecipe()">✏️ Sửa</button>
+                <button class="btn btn-danger" onclick="deleteRecipe()">🗑️ Xóa</button>
+            </div>
+        </div>
+    </div>
+
     <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/utils.js"></script>
+    <script>
+        // Recipe Management
+        checkAuth();
+
+        let currentRecipe = null;
+        let allRecipes = [];
+
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const userInfo = await apiGetCurrentUser();
+                document.getElementById('user-email').textContent = userInfo.email;
+            } catch (error) {
+                console.error('Error loading user:', error);
+            }
+        }
+        loadUserInfo();
+
+        // Search functionality
+        let searchTimeout;
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                loadRecipes(e.target.value);
+            }, 500);
+        });
+
+        // Load recipes
+        async function loadRecipes(search = '') {
+            try {
+                const category = document.getElementById('filter-category').value;
+                const diet = document.getElementById('filter-diet').value;
+                
+                const params = {};
+                if (search) params.search = search;
+                if (category) params.category = category;
+                if (diet) params.dietary_restrictions = diet;
+                
+                const recipes = await apiGetRecipes(params);
+                allRecipes = recipes;
+                displayRecipes(recipes);
+            } catch (error) {
+                console.error('Error loading recipes:', error);
+                showToast('Lỗi tải công thức: ' + error.message, 'error');
+            }
+        }
+
+        function displayRecipes(recipes) {
+            const grid = document.getElementById('recipes-grid');
+            
+            if (!recipes || recipes.length === 0) {
+                grid.innerHTML = '<div class="loading">Không tìm thấy công thức nào</div>';
+                return;
+            }
+            
+            grid.innerHTML = recipes.map(recipe => {
+                const icon = getRecipeIcon(recipe.category);
+                const avgRating = recipe.average_rating || 0;
+                const stars = '⭐'.repeat(Math.round(avgRating));
+                
+                return `
+                    <div class="recipe-card" onclick="showRecipeDetail(${recipe.id})">
+                        <div class="recipe-image">${icon}</div>
+                        <div class="recipe-body">
+                            <div class="recipe-title">${recipe.name}</div>
+                            <div class="recipe-meta">
+                                <span>⏱️ ${recipe.cooking_time} phút</span>
+                                <span>🔥 ${Math.round(recipe.calories)} kcal</span>
+                            </div>
+                            ${recipe.average_rating ? `<div class="recipe-rating">${stars} ${avgRating.toFixed(1)}</div>` : ''}
+                            <div class="recipe-tags">
+                                <span class="tag">${recipe.category}</span>
+                                ${recipe.dietary_restrictions ? recipe.dietary_restrictions.split(',').map(d => 
+                                    `<span class="tag">${d.trim()}</span>`
+                                ).join('') : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getRecipeIcon(category) {
+            const icons = {
+                'Breakfast': '🍳',
+                'Lunch': '🍜',
+                'Dinner': '🍽️',
+                'Snack': '🍪'
+            };
+            return icons[category] || '🍴';
+        }
+
+        // Show recipe detail
+        async function showRecipeDetail(id) {
+            try {
+                const recipe = await apiGetRecipe(id);
+                currentRecipe = recipe;
+                
+                const modal = document.getElementById('detail-modal');
+                document.getElementById('detail-name').textContent = recipe.name;
+                
+                const avgRating = recipe.average_rating || 0;
+                const stars = '⭐'.repeat(Math.round(avgRating));
+                
+                document.getElementById('detail-content').innerHTML = `
+                    <div class="detail-section">
+                        <h3>Thông tin</h3>
+                        <p><strong>Loại:</strong> ${recipe.category}</p>
+                        <p><strong>Thời gian:</strong> ${recipe.cooking_time} phút</p>
+                        <p><strong>Mô tả:</strong> ${recipe.description || 'Không có'}</p>
+                        ${recipe.dietary_restrictions ? `<p><strong>Chế độ ăn:</strong> ${recipe.dietary_restrictions}</p>` : ''}
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>Dinh dưỡng (mỗi phần)</h3>
+                        <div class="nutrition-grid">
+                            <div class="nutrition-item">
+                                <span class="nutrition-value">${Math.round(recipe.calories)}</span>
+                                <span class="nutrition-label">Calories</span>
+                            </div>
+                            <div class="nutrition-item">
+                                <span class="nutrition-value">${formatNumber(recipe.protein)}g</span>
+                                <span class="nutrition-label">Protein</span>
+                            </div>
+                            <div class="nutrition-item">
+                                <span class="nutrition-value">${formatNumber(recipe.carbs)}g</span>
+                                <span class="nutrition-label">Carbs</span>
+                            </div>
+                            <div class="nutrition-item">
+                                <span class="nutrition-value">${formatNumber(recipe.fat)}g</span>
+                                <span class="nutrition-label">Fat</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>Nguyên liệu</h3>
+                        <ul class="ingredients-list">
+                            ${recipe.ingredients.map(ing => 
+                                `<li>${ing.name}: ${ing.amount} ${ing.unit}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>Hướng dẫn</h3>
+                        <p style="white-space: pre-line;">${recipe.instructions}</p>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h3>Đánh giá ${recipe.average_rating ? `(${stars} ${avgRating.toFixed(1)})` : ''}</h3>
+                        <div class="rating-form">
+                            <select id="rating-stars">
+                                <option value="5">⭐⭐⭐⭐⭐ Tuyệt vời</option>
+                                <option value="4">⭐⭐⭐⭐ Rất tốt</option>
+                                <option value="3">⭐⭐⭐ Tốt</option>
+                                <option value="2">⭐⭐ Bình thường</option>
+                                <option value="1">⭐ Cần cải thiện</option>
+                            </select>
+                            <textarea id="rating-comment" placeholder="Nhận xét của bạn..."></textarea>
+                            <button class="btn btn-primary" onclick="submitRating()">Gửi đánh giá</button>
+                        </div>
+                    </div>
+                `;
+                
+                modal.classList.add('active');
+            } catch (error) {
+                showToast('Lỗi tải chi tiết: ' + error.message, 'error');
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detail-modal').classList.remove('active');
+            currentRecipe = null;
+        }
+
+        // Submit rating
+        async function submitRating() {
+            if (!currentRecipe) return;
+            
+            try {
+                const stars = parseInt(document.getElementById('rating-stars').value);
+                const comment = document.getElementById('rating-comment').value;
+                
+                await apiRateRecipe(currentRecipe.id, { rating: stars, comment });
+                showToast('Đánh giá thành công!', 'success');
+                closeDetailModal();
+                loadRecipes();
+            } catch (error) {
+                showToast('Lỗi gửi đánh giá: ' + error.message, 'error');
+            }
+        }
+
+        // Create/Edit modal
+        function showCreateModal() {
+            document.getElementById('modal-title').textContent = 'Thêm công thức mới';
+            document.getElementById('recipe-form').reset();
+            currentRecipe = null;
+            document.getElementById('recipe-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('recipe-modal').classList.remove('active');
+        }
+
+        function editRecipe() {
+            if (!currentRecipe) return;
+            
+            document.getElementById('modal-title').textContent = 'Sửa công thức';
+            document.getElementById('recipe-name').value = currentRecipe.name;
+            document.getElementById('recipe-category').value = currentRecipe.category;
+            document.getElementById('recipe-time').value = currentRecipe.cooking_time;
+            document.getElementById('recipe-description').value = currentRecipe.description || '';
+            document.getElementById('recipe-instructions').value = currentRecipe.instructions;
+            
+            closeDetailModal();
+            document.getElementById('recipe-modal').classList.add('active');
+        }
+
+        async function deleteRecipe() {
+            if (!currentRecipe || !confirm('Xóa công thức này?')) return;
+            
+            try {
+                await apiDeleteRecipe(currentRecipe.id);
+                showToast('Đã xóa công thức', 'success');
+                closeDetailModal();
+                loadRecipes();
+            } catch (error) {
+                showToast('Lỗi xóa: ' + error.message, 'error');
+            }
+        }
+
+        // Ingredients management
+        function addIngredient() {
+            const list = document.getElementById('ingredients-list');
+            const item = document.createElement('div');
+            item.className = 'ingredient-item';
+            item.innerHTML = `
+                <input type="text" placeholder="Tên nguyên liệu" class="ing-name" required>
+                <input type="number" placeholder="Số lượng" class="ing-amount" step="0.1" required>
+                <input type="text" placeholder="Đơn vị" class="ing-unit" required>
+                <button type="button" class="btn-remove" onclick="removeIngredient(this)">🗑️</button>
+            `;
+            list.appendChild(item);
+        }
+
+        function removeIngredient(btn) {
+            const list = document.getElementById('ingredients-list');
+            if (list.children.length > 1) {
+                btn.parentElement.remove();
+            }
+        }
+
+        // Save recipe
+        async function saveRecipe(e) {
+            e.preventDefault();
+            
+            try {
+                const ingredients = [];
+                document.querySelectorAll('.ingredient-item').forEach(item => {
+                    ingredients.push({
+                        name: item.querySelector('.ing-name').value,
+                        amount: parseFloat(item.querySelector('.ing-amount').value),
+                        unit: item.querySelector('.ing-unit').value
+                    });
+                });
+                
+                const dietary = Array.from(document.querySelectorAll('.checkbox-group input:checked'))
+                    .map(cb => cb.value).join(', ');
+                
+                const recipeData = {
+                    name: document.getElementById('recipe-name').value,
+                    category: document.getElementById('recipe-category').value,
+                    cooking_time: parseInt(document.getElementById('recipe-time').value),
+                    description: document.getElementById('recipe-description').value,
+                    instructions: document.getElementById('recipe-instructions').value,
+                    dietary_restrictions: dietary || null,
+                    ingredients
+                };
+                
+                if (currentRecipe) {
+                    await apiUpdateRecipe(currentRecipe.id, recipeData);
+                    showToast('Đã cập nhật công thức', 'success');
+                } else {
+                    await apiCreateRecipe(recipeData);
+                    showToast('Đã thêm công thức mới', 'success');
+                }
+                
+                closeModal();
+                loadRecipes();
+            } catch (error) {
+                showToast('Lỗi lưu công thức: ' + error.message, 'error');
+            }
+        }
+
+        // Load recipes on page load
+        loadRecipes();
+
+        // AI Recipe Generator Functions
+        function showAIRecipeModal() {
+            document.getElementById('ai-recipe-modal').style.display = 'flex';
+            document.getElementById('ai-recipe-result').innerHTML = '';
+        }
+
+        function closeAIRecipeModal() {
+            document.getElementById('ai-recipe-modal').style.display = 'none';
+        }
+
+        function switchAITab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.ai-tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`ai-tab-${tab}`).classList.add('active');
+        }
+
+        let aiGeneratedRecipe = null;
+
+        async function generateRecipeFromIngredients() {
+            const ingredients = document.getElementById('ai-ingredients').value.trim();
+            if (!ingredients) {
+                showToast('Vui lòng nhập nguyên liệu', 'error');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('ai-recipe-result');
+            resultDiv.innerHTML = '<div class="loading">⏳ AI đang tạo công thức...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/ai/generate-recipe`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ ingredients: ingredients })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Lỗi tạo công thức');
+                }
+                
+                const data = await response.json();
+                aiGeneratedRecipe = data.recipe;
+                displayAIRecipe(data.recipe);
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+
+        async function generateRecipeFromDescription() {
+            const description = document.getElementById('ai-description').value.trim();
+            if (!description) {
+                showToast('Vui lòng nhập mô tả', 'error');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('ai-recipe-result');
+            resultDiv.innerHTML = '<div class="loading">⏳ AI đang tạo công thức...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/ai/search-recipes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ query: description })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Lỗi tìm kiếm');
+                }
+                
+                const data = await response.json();
+                if (data.suggestions && data.suggestions.length > 0) {
+                    aiGeneratedRecipe = data.suggestions[0];
+                    displayAIRecipe(data.suggestions[0]);
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Không tìm thấy công thức phù hợp</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+
+        function displayAIRecipe(recipe) {
+            const resultDiv = document.getElementById('ai-recipe-result');
+            
+            let html = `
+                <div class="ai-recipe-preview" style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <h3>📝 ${recipe.name}</h3>
+                    <p><strong>Loại:</strong> ${recipe.category || 'Lunch'}</p>
+                    <p><strong>Thời gian:</strong> ${recipe.cooking_time || 30} phút</p>
+                    
+                    <div style="margin: 15px 0;">
+                        <h4>Nguyên liệu:</h4>
+                        <ul>
+            `;
+            
+            if (recipe.ingredients && recipe.ingredients.length > 0) {
+                recipe.ingredients.forEach(ing => {
+                    html += `<li>${ing.name}: ${ing.amount || ing.quantity} ${ing.unit}</li>`;
+                });
+            }
+            
+            html += `
+                        </ul>
+                    </div>
+                    
+                    <div style="margin: 15px 0;">
+                        <h4>Hướng dẫn:</h4>
+                        <p style="white-space: pre-line;">${recipe.instructions}</p>
+                    </div>
+                    
+                    <div style="margin: 15px 0;">
+                        <h4>Dinh dưỡng:</h4>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                            <div style="text-align: center;">
+                                <strong>${recipe.calories || 0}</strong><br>
+                                <small>Calories</small>
+                            </div>
+                            <div style="text-align: center;">
+                                <strong>${recipe.protein || 0}g</strong><br>
+                                <small>Protein</small>
+                            </div>
+                            <div style="text-align: center;">
+                                <strong>${recipe.carbs || 0}g</strong><br>
+                                <small>Carbs</small>
+                            </div>
+                            <div style="text-align: center;">
+                                <strong>${recipe.fat || 0}g</strong><br>
+                                <small>Fat</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; display: flex; gap: 10px;">
+                        <button class="btn btn-primary btn-block" onclick="saveAIRecipe()">
+                            💾 Lưu vào công thức
+                        </button>
+                        <button class="btn btn-secondary btn-block" onclick="document.getElementById('ai-recipe-result').innerHTML = ''">
+                            ❌ Hủy
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = html;
+        }
+
+        async function saveAIRecipe() {
+            if (!aiGeneratedRecipe) return;
+            
+            try {
+                const recipeData = {
+                    name: aiGeneratedRecipe.name,
+                    category: aiGeneratedRecipe.category || 'Lunch',
+                    cooking_time: aiGeneratedRecipe.cooking_time || 30,
+                    servings: aiGeneratedRecipe.servings || 1,
+                    description: aiGeneratedRecipe.description || '',
+                    instructions: aiGeneratedRecipe.instructions,
+                    ingredients: aiGeneratedRecipe.ingredients.map(ing => ({
+                        name: ing.name,
+                        amount: ing.amount || ing.quantity || 1,
+                        unit: ing.unit
+                    })),
+                    calories: aiGeneratedRecipe.calories || 0,
+                    protein: aiGeneratedRecipe.protein || 0,
+                    carbs: aiGeneratedRecipe.carbs || 0,
+                    fat: aiGeneratedRecipe.fat || 0,
+                    dietary_restrictions: aiGeneratedRecipe.dietary_info ? aiGeneratedRecipe.dietary_info.join(', ') : null
+                };
+                
+                await apiCreateRecipe(recipeData);
+                showToast('✅ Đã lưu công thức từ AI!', 'success');
+                closeAIRecipeModal();
+                loadRecipes();
+                
+            } catch (error) {
+                showToast('Lỗi lưu công thức: ' + error.message, 'error');
+            }
+        }
+    </script>
+
+    <style>
+        .ai-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .ai-tabs .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 1em;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .ai-tabs .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .ai-tab-content {
+            display: none;
+        }
+        
+        .ai-tab-content.active {
+            display: block;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .search-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+        }
+
+        .filters select {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 0.95em;
+        }
+
+        .recipes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .recipe-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .recipe-image {
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4em;
+        }
+
+        .recipe-body {
+            padding: 20px;
+        }
+
+        .recipe-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .recipe-meta {
+            display: flex;
+            gap: 15px;
+            margin: 10px 0;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .recipe-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .recipe-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .tag {
+            background: #f0f0f0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .recipe-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+            color: #ffa500;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-large {
+            max-width: 800px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        .ingredient-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-remove {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #f44336;
+            background: #ffebee;
+            border-radius: 10px;
+        }
+
+        .detail-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 10px;
+        }
+
+        .detail-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .nutrition-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            text-align: center;
+        }
+
+        .nutrition-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .nutrition-value {
+            display: block;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .nutrition-label {
+            display: block;
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .ingredients-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .ingredients-list li {
+            padding: 10px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 8px;
+        }
+
+        .rating-form {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .rating-form select,
+        .rating-form textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .rating-form textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+    </style>
 </body>
 </html>

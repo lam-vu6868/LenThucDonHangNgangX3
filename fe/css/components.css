@@ -1,1 +1,153 @@
-/* CSS cho Card, Button */
+/* Additional Component Styles */
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .modal-content {
+        margin: 10px;
+        padding: 20px;
+        width: calc(100% - 20px);
+        max-height: 85vh;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.3em;
+    }
+    
+    .ingredient-item {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .ingredient-item input[type="text"] {
+        grid-column: 1;
+    }
+    
+    .ingredient-item .btn-remove {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .nutrition-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .ingredients-checklist {
+        grid-template-columns: 1fr;
+    }
+    
+    .weekly-plan {
+        grid-template-columns: 1fr;
+    }
+    
+    .day-plan h3 {
+        font-size: 1.1em;
+    }
+    
+    .ai-card {
+        padding: 20px;
+    }
+    
+    .ai-card h3 {
+        font-size: 1.2em;
+    }
+    
+    .search-section {
+        padding: 15px;
+    }
+    
+    .filters {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .filters select {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .nutrition-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .nutrition-item {
+        padding: 12px;
+    }
+    
+    .nutrition-value {
+        font-size: 1.3em;
+    }
+    
+    .btn-add-ingredient {
+        width: 100%;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions button {
+        width: 100%;
+    }
+}
+
+
+.detail-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 10px;
+}
+
+.detail-section h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.nutrition-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    text-align: center;
+}
+
+.nutrition-item {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.nutrition-value {
+    display: block;
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.nutrition-label {
+    display: block;
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+}
+
+.rating-form {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.rating-form select,
+.rating-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.rating-form textarea {
+    min-height: 80px;
+    resize: vertical;
+}

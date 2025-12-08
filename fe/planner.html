@@ -3,25 +3,754 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Planner Dashboard</title>
+    <title>Lịch ăn - Meal Planner</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Calendar Styles */
+        .week-nav {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        #week-label {
+            font-weight: 600;
+            color: #667eea;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .recipe-picker {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .recipe-picker h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .recipes-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+
+        .recipe-search {
+            margin-bottom: 15px;
+        }
+
+        .recipe-search input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        .recipe-search input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .recipes-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .recipes-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .recipes-list::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .recipes-list::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+
+        .recipe-chip {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: grab;
+            user-select: none;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+
+        .recipe-chip:hover {
+            transform: scale(1.05);
+        }
+
+        .recipe-chip:active {
+            cursor: grabbing;
+        }
+
+        .calendar-container {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 120px repeat(3, 1fr);
+            gap: 15px;
+            min-width: 800px;
+        }
+
+        .calendar-header {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: 700;
+            border-radius: 10px;
+            font-size: 1.1em;
+        }
+
+        .calendar-days {
+            display: contents;
+        }
+
+        .day-label {
+            background: #f8f9fa;
+            padding: 15px;
+            font-weight: 600;
+            color: #555;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .meal-slot {
+            min-height: 100px;
+            border: 2px dashed #e0e0e0;
+            border-radius: 10px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .meal-slot:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .meal-slot.drag-over {
+            background: #e8eaf6;
+            border-color: #667eea;
+            border-style: solid;
+        }
+
+        .slot-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 80px;
+            color: #ccc;
+            font-size: 2em;
+        }
+
+        .meal-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .meal-name {
+            font-weight: 700;
+            font-size: 1em;
+            margin-bottom: 5px;
+        }
+
+        .meal-info {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+
+        .delete-meal {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            line-height: 1;
+            transition: background 0.2s;
+        }
+
+        .delete-meal:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Quản lý thực đơn hàng ngày</h1>
-        <nav>
-            <a href="index.html">Lên lịch</a> |
-            <a href="planner.html">Lịch ăn uống</a> |
-            <a href="recipes.html">Công thức</a> |
-            <a href="shopping.html">Đi chợ</a> |
-            <a href="ai-generator.html">AI Gợi ý</a>
-        </nav>
-        <hr>
-        <div id="app">
-            <p>Chào mừng bạn đến với ứng dụng Meal Planner.</p>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🍽️ Meal Planner</h2>
+                <div class="user-info">
+                    <p><strong id="user-email">user@example.com</strong></p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html"><span>🏠</span> Dashboard</a></li>
+                    <li><a href="recipes.html"><span>📖</span> Công thức</a></li>
+                    <li><a href="planner.html" class="active"><span>📅</span> Lịch ăn</a></li>
+                    <li><a href="shopping.html"><span>🛒</span> Shopping List</a></li>
+                    <li><a href="ai-generator.html"><span>✨</span> AI Generator</a></li>
+                    <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <div class="page-header">
+                    <h1>📅 Lịch ăn của tôi</h1>
+                    <div class="week-nav">
+                        <button class="btn btn-secondary" onclick="previousWeek()">◀ Tuần trước</button>
+                        <span id="week-label">Tuần này</span>
+                        <button class="btn btn-secondary" onclick="nextWeek()">Tuần sau ▶</button>
+                        <button class="btn btn-primary" onclick="showAIWeeklyModal()" style="margin-left: auto;">✨ AI tạo thực đơn tuần</button>
+                    </div>
+                </div>
+
+                <!-- Recipe Picker -->
+                <div class="recipe-picker">
+                    <h3>Kéo thả công thức vào lịch:</h3>
+                    <div class="recipe-search">
+                        <input type="text" id="recipe-search-input" placeholder="🔍 Tìm kiếm món ăn..." onkeyup="filterRecipes()">
+                    </div>
+                    <div id="recipes-list" class="recipes-list">
+                        <!-- Loaded from API -->
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="calendar-container">
+                    <div class="calendar-grid">
+                        <!-- Headers -->
+                        <div class="calendar-header"></div>
+                        <div class="calendar-header">Sáng</div>
+                        <div class="calendar-header">Trưa</div>
+                        <div class="calendar-header">Tối</div>
+
+                        <!-- Days -->
+                        <div id="calendar-days" class="calendar-days">
+                            <!-- Generated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- AI Weekly Meal Plan Modal -->
+    <div id="ai-weekly-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✨ AI tạo thực đơn tuần</h2>
+                <button class="close-btn" onclick="closeAIWeeklyModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <p style="color: #666; margin-bottom: 20px;">
+                    AI sẽ tạo thực đơn 7 ngày cân đối dinh dưỡng dựa trên thông tin cá nhân của bạn.
+                </p>
+                
+                <div class="form-group">
+                    <label>Mức độ hoạt động:</label>
+                    <select id="ai-activity-level" class="form-control">
+                        <option value="sedentary">Ít vận động (văn phòng, ít tập thể dục)</option>
+                        <option value="light">Vận động nhẹ (tập 1-3 ngày/tuần)</option>
+                        <option value="moderate" selected>Vận động vừa (tập 3-5 ngày/tuần)</option>
+                        <option value="active">Vận động nhiều (tập 6-7 ngày/tuần)</option>
+                        <option value="very_active">Vận động cực nhiều (vận động viên, công việc nặng nhọc)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Mục tiêu dinh dưỡng:</label>
+                    <select id="ai-goal" class="form-control">
+                        <option value="maintain">Duy trì cân nặng</option>
+                        <option value="lose">Giảm cân (-500 kcal/ngày)</option>
+                        <option value="gain">Tăng cân (+500 kcal/ngày)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Ghi chú thêm (tùy chọn):</label>
+                    <textarea id="ai-notes" class="form-control" rows="3" placeholder="VD: Muốn nhiều rau xanh, ít tinh bột, món ăn dễ nấu..."></textarea>
+                </div>
+                
+                <button class="btn btn-primary btn-block" onclick="generateAIWeeklyPlan()">
+                    ✨ Tạo thực đơn
+                </button>
+                
+                <div id="ai-weekly-result" style="margin-top: 20px;"></div>
+            </div>
         </div>
     </div>
+
     <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/utils.js"></script>
+    <script>
+        checkAuth();
+        
+        let currentWeekStart = null;
+        let currentWeekEnd = null;
+        let allRecipes = [];
+        let mealPlans = [];
+        
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const userInfo = await apiGetCurrentUser();
+                document.getElementById('user-email').textContent = userInfo.email;
+            } catch (error) {
+                console.error('Error loading user:', error);
+            }
+        }
+        loadUserInfo();
+
+        // Drag and Drop
+        function dragStart(event) {
+            event.dataTransfer.setData('recipeId', event.target.dataset.recipeId);
+            event.target.style.opacity = '0.5';
+        }
+
+        function allowDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drag-over');
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drag-over');
+            
+            const recipeId = event.dataTransfer.getData('recipeId');
+            const slot = event.currentTarget;
+            const date = slot.dataset.date;
+            const mealType = slot.dataset.mealType;
+            
+            addMealPlanFromDrop(parseInt(recipeId), date, mealType);
+        }
+
+        async function addMealPlanFromDrop(recipeId, date, mealType) {
+            try {
+                const data = {
+                    recipe_id: recipeId,
+                    date: date,
+                    meal_type: mealType,
+                    servings: 1
+                };
+                
+                await apiCreateMealPlan(data);
+                showToast('Đã thêm vào lịch!', 'success');
+                loadMealPlans();
+            } catch (error) {
+                showToast('Lỗi: ' + error.message, 'error');
+            }
+        }
+
+        document.addEventListener('dragleave', (event) => {
+            if (event.target.classList.contains('meal-slot')) {
+                event.target.classList.remove('drag-over');
+            }
+        });
+
+        document.addEventListener('dragend', (event) => {
+            if (event.target.classList.contains('recipe-chip')) {
+                event.target.style.opacity = '1';
+            }
+        });
+
+        // Initialize
+        async function init() {
+            setCurrentWeek();
+            await loadRecipes();
+            await loadMealPlans();
+        }
+
+        function setCurrentWeek() {
+            const today = new Date();
+            const dayOfWeek = today.getDay();
+            const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + diff);
+            
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            
+            currentWeekStart = monday.toISOString().split('T')[0];
+            currentWeekEnd = sunday.toISOString().split('T')[0];
+            
+            updateWeekLabel();
+            renderCalendar();
+        }
+
+        function updateWeekLabel() {
+            const start = new Date(currentWeekStart);
+            const end = new Date(currentWeekEnd);
+            document.getElementById('week-label').textContent = 
+                `${formatDate(currentWeekStart)} - ${formatDate(currentWeekEnd)}`;
+        }
+
+        function previousWeek() {
+            const start = new Date(currentWeekStart);
+            start.setDate(start.getDate() - 7);
+            currentWeekStart = start.toISOString().split('T')[0];
+            
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            currentWeekEnd = end.toISOString().split('T')[0];
+            
+            updateWeekLabel();
+            renderCalendar();
+            loadMealPlans();
+        }
+
+        function nextWeek() {
+            const start = new Date(currentWeekStart);
+            start.setDate(start.getDate() + 7);
+            currentWeekStart = start.toISOString().split('T')[0];
+            
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            currentWeekEnd = end.toISOString().split('T')[0];
+            
+            updateWeekLabel();
+            renderCalendar();
+            loadMealPlans();
+        }
+
+        async function loadRecipes() {
+            try {
+                allRecipes = await apiGetRecipes();
+                displayRecipesList();
+            } catch (error) {
+                showToast('Lỗi tải công thức: ' + error.message, 'error');
+            }
+        }
+
+        function displayRecipesList() {
+            const container = document.getElementById('recipes-list');
+            const searchTerm = document.getElementById('recipe-search-input')?.value.toLowerCase() || '';
+            
+            const filteredRecipes = allRecipes.filter(recipe => 
+                recipe.name.toLowerCase().includes(searchTerm)
+            );
+            
+            if (filteredRecipes.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Không tìm thấy món ăn nào</p>';
+                return;
+            }
+            
+            container.innerHTML = filteredRecipes.map(recipe => `
+                <div class="recipe-chip" draggable="true" data-recipe-id="${recipe.id}" 
+                     data-recipe-name="${recipe.name}"
+                     ondragstart="dragStart(event)">
+                    ${getRecipeIcon(recipe.tags)} ${recipe.name}
+                </div>
+            `).join('');
+        }
+
+        function filterRecipes() {
+            displayRecipesList();
+        }
+
+        function getRecipeIcon(tags) {
+            // Lấy icon dựa trên tags
+            if (!tags) return '🍽️';
+            
+            const tagLower = tags.toLowerCase();
+            if (tagLower.includes('breakfast')) return '🍳';
+            if (tagLower.includes('lunch')) return '🍜';
+            if (tagLower.includes('dinner')) return '🍽️';
+            if (tagLower.includes('snack')) return '🍪';
+            
+            return '🍴';
+        }
+
+        async function loadMealPlans() {
+            try {
+                mealPlans = await apiGetMealPlans(currentWeekStart, currentWeekEnd);
+                renderMealPlans();
+            } catch (error) {
+                showToast('Lỗi tải lịch: ' + error.message, 'error');
+            }
+        }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendar-days');
+            container.innerHTML = '';
+            
+            const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+            const startDate = new Date(currentWeekStart);
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startDate);
+                date.setDate(startDate.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                const dayLabel = document.createElement('div');
+                dayLabel.className = 'day-label';
+                dayLabel.textContent = `${days[i]} ${date.getDate()}/${date.getMonth() + 1}`;
+                container.appendChild(dayLabel);
+                
+                ['Breakfast', 'Lunch', 'Dinner'].forEach(mealType => {
+                    const slot = document.createElement('div');
+                    slot.className = 'meal-slot';
+                    slot.dataset.date = dateStr;
+                    slot.dataset.mealType = mealType;
+                    slot.ondragover = (e) => allowDrop(e);
+                    slot.ondrop = (e) => drop(e);
+                    container.appendChild(slot);
+                });
+            }
+        }
+
+        function renderMealPlans() {
+            document.querySelectorAll('.meal-slot').forEach(slot => {
+                slot.innerHTML = '<div class="slot-placeholder">+</div>';
+            });
+            
+            mealPlans.forEach(plan => {
+                const slot = document.querySelector(
+                    `.meal-slot[data-date="${plan.date}"][data-meal-type="${plan.meal_type}"]`
+                );
+                if (slot) {
+                    slot.innerHTML = `
+                        <div class="meal-card" data-plan-id="${plan.id}">
+                            <div class="meal-name">${plan.recipe.name}</div>
+                            <div class="meal-info">${plan.servings} phần • ${Math.round(plan.recipe.calories)} kcal</div>
+                            <button class="delete-meal" onclick="deleteMealPlan(${plan.id}, event)">×</button>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        async function deleteMealPlan(planId, event) {
+            event.stopPropagation();
+            if (!confirm('Xóa bữa ăn này?')) return;
+            
+            try {
+                await apiDeleteMealPlan(planId);
+                showToast('Đã xóa!', 'success');
+                loadMealPlans();
+            } catch (error) {
+                showToast('Lỗi: ' + error.message, 'error');
+            }
+        }
+
+        // AI Weekly Plan Functions
+        function showAIWeeklyModal() {
+            document.getElementById('ai-weekly-modal').style.display = 'flex';
+            document.getElementById('ai-weekly-result').innerHTML = '';
+        }
+
+        function closeAIWeeklyModal() {
+            document.getElementById('ai-weekly-modal').style.display = 'none';
+        }
+
+        async function generateAIWeeklyPlan() {
+            const activityLevel = document.getElementById('ai-activity-level').value;
+            const goal = document.getElementById('ai-goal').value;
+            const notes = document.getElementById('ai-notes').value;
+            const resultDiv = document.getElementById('ai-weekly-result');
+            
+            resultDiv.innerHTML = '<div class="loading">⏳ AI đang tạo thực đơn và lưu vào database...</div>';
+            
+            try {
+                const response = await fetch(`${CONFIG.API_URL}/ai/suggest-weekly-plan`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ 
+                        activity_level: activityLevel,
+                        goal: goal,
+                        notes: notes,
+                        start_date: currentWeekStart  // Gửi ngày đầu tuần đang xem
+                    })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Lỗi tạo thực đơn');
+                }
+                
+                const data = await response.json();
+                
+                // QUAN TRỌNG: Reload recipes và meal plans để hiển thị món mới
+                await loadRecipes();
+                await loadMealPlans();
+                
+                resultDiv.innerHTML = `
+                    <div class="success" style="padding: 20px; background: #d4edda; border-radius: 10px; color: #155724;">
+                        <h3>✅ ${data.message}</h3>
+                        <p style="margin: 10px 0;">📊 Calories mục tiêu: ~${data.total_calories_per_day} kcal/ngày</p>
+                        <p>🍳 Đã tạo ${data.recipes_created} công thức món ăn</p>
+                        <p>📅 Đã thêm ${data.meal_plans_created} bữa ăn vào lịch</p>
+                        <button class="btn btn-primary" onclick="closeAIWeeklyModal();" style="margin-top: 15px;">
+                            ✅ Đóng và xem lịch
+                        </button> ăn
+                        </button>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+            }
+        }
+
+        init();
+    </script>
 </body>
 </html>

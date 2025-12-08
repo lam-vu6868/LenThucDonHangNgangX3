@@ -3,25 +3,329 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Planner Dashboard</title>
+    <title>Shopping List - Meal Planner</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Quản lý thực đơn hàng ngày</h1>
-        <nav>
-            <a href="index.html">Danh sách mua sắm</a> |
-            <a href="planner.html">Lịch ăn uống</a> |
-            <a href="recipes.html">Công thức</a> |
-            <a href="shopping.html">Đi chợ</a> |
-            <a href="ai-generator.html">AI Gợi ý</a>
-        </nav>
-        <hr>
-        <div id="app">
-            <p>Chào mừng bạn đến với ứng dụng Meal Planner.</p>
-        </div>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🍽️ Meal Planner</h2>
+                <div class="user-info">
+                    <p><strong id="user-email">user@example.com</strong></p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html"><span>🏠</span> Dashboard</a></li>
+                    <li><a href="recipes.html"><span>📖</span> Công thức</a></li>
+                    <li><a href="planner.html"><span>📅</span> Lịch ăn</a></li>
+                    <li><a href="shopping.html" class="active"><span>🛒</span> Shopping List</a></li>
+                    <li><a href="ai-generator.html"><span>✨</span> AI Generator</a></li>
+                    <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <div class="page-header">
+                    <h1>🛒 Danh sách mua sắm</h1>
+                    <button class="btn btn-primary" onclick="window.print()">🖨️ In danh sách</button>
+                </div>
+
+                <!-- Date Range Selector -->
+                <div class="date-selector">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Từ ngày:</label>
+                            <input type="date" id="start-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Đến ngày:</label>
+                            <input type="date" id="end-date">
+                        </div>
+                        <button class="btn btn-primary" onclick="loadShoppingList()">Tạo danh sách</button>
+                    </div>
+                    <div class="quick-dates">
+                        <button class="btn btn-secondary" onclick="setThisWeek()">Tuần này</button>
+                        <button class="btn btn-secondary" onclick="setNextWeek()">Tuần sau</button>
+                    </div>
+                </div>
+
+                <!-- Shopping List -->
+                <div id="shopping-content" class="shopping-content">
+                    <div class="empty-state">
+                        <p>📅 Chọn khoảng thời gian để tạo danh sách mua sắm</p>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
+
     <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/utils.js"></script>
+    <script>
+        checkAuth();
+        
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const userInfo = await apiGetCurrentUser();
+                document.getElementById('user-email').textContent = userInfo.email;
+            } catch (error) {
+                console.error('Error loading user:', error);
+            }
+        }
+        loadUserInfo();
+
+        // Set default dates to current week
+        window.onload = function() {
+            setThisWeek();
+        };
+
+        function setThisWeek() {
+            const week = getCurrentWeek();
+            document.getElementById('start-date').value = week.start;
+            document.getElementById('end-date').value = week.end;
+            loadShoppingList();
+        }
+
+        function setNextWeek() {
+            const today = new Date();
+            const nextMonday = new Date(today);
+            const dayOfWeek = today.getDay();
+            const daysToAdd = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+            nextMonday.setDate(today.getDate() + daysToAdd);
+            
+            const nextSunday = new Date(nextMonday);
+            nextSunday.setDate(nextMonday.getDate() + 6);
+            
+            document.getElementById('start-date').value = nextMonday.toISOString().split('T')[0];
+            document.getElementById('end-date').value = nextSunday.toISOString().split('T')[0];
+            loadShoppingList();
+        }
+
+        async function loadShoppingList() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            
+            if (!startDate || !endDate) {
+                showToast('Vui lòng chọn khoảng thời gian', 'error');
+                return;
+            }
+
+            try {
+                showLoading();
+                const data = await apiGetShoppingList(startDate, endDate);
+                displayShoppingList(data);
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Lỗi tải danh sách: ' + error.message, 'error');
+            }
+        }
+
+        function displayShoppingList(data) {
+            const container = document.getElementById('shopping-content');
+            
+            if (!data.ingredients || data.ingredients.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>Không có nguyên liệu nào trong khoảng thời gian này</p>
+                        <p>Hãy thêm bữa ăn vào lịch trước!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group ingredients by category (optional enhancement)
+            const ingredientsList = data.ingredients.map(ing => `
+                <div class="ingredient-item">
+                    <input type="checkbox" id="ing-${ing.name}" onchange="toggleIngredient(this)">
+                    <label for="ing-${ing.name}">
+                        <span class="ing-name">${ing.name}</span>
+                        <span class="ing-amount">${ing.total_amount} ${ing.unit}</span>
+                    </label>
+                </div>
+            `).join('');
+
+            const recipesList = data.recipes.map(recipe => `
+                <div class="recipe-tag">${recipe}</div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="shopping-summary">
+                    <h3>📊 Tổng quan</h3>
+                    <p><strong>${data.ingredients.length}</strong> nguyên liệu cần mua</p>
+                    <p><strong>${data.recipes.length}</strong> món ăn</p>
+                </div>
+
+                <div class="shopping-section">
+                    <h3>🛒 Danh sách nguyên liệu</h3>
+                    <div class="ingredients-checklist">
+                        ${ingredientsList}
+                    </div>
+                </div>
+
+                <div class="shopping-section">
+                    <h3>📖 Các món ăn</h3>
+                    <div class="recipes-tags">
+                        ${recipesList}
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleIngredient(checkbox) {
+            const label = checkbox.nextElementSibling;
+            if (checkbox.checked) {
+                label.style.textDecoration = 'line-through';
+                label.style.opacity = '0.5';
+            } else {
+                label.style.textDecoration = 'none';
+                label.style.opacity = '1';
+            }
+        }
+    </script>
+
+    <style>
+        .date-selector {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .quick-dates {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .shopping-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-height: 400px;
+        }
+
+        .shopping-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .shopping-summary h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .shopping-section {
+            margin: 30px 0;
+        }
+
+        .shopping-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .ingredients-checklist {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .ingredient-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .ingredient-item:hover {
+            background: #e9ecef;
+        }
+
+        .ingredient-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+
+        .ingredient-item label {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .ing-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .ing-amount {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .recipes-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .recipe-tag {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+
+        /* Print styles */
+        @media print {
+            .main-layout {
+                display: block;
+            }
+
+            .sidebar, .page-header button, .date-selector {
+                display: none !important;
+            }
+
+            .shopping-content {
+                box-shadow: none;
+            }
+
+            .ingredient-item {
+                break-inside: avoid;
+            }
+        }
+    </style>
 </body>
 </html>

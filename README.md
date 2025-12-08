@@ -1,5 +1,27 @@
 # 🍽️ Meal Planner - AI-Powered Recipe & Meal Planning System
 
+## 🚀 LỆNH CHẠY WEB
+
+### 1. Backend (Terminal 1):
+```bash
+cd /home/lamvu/LenThucDonThongMinh/meal-planner/be
+source venv/bin/activate
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+
+### 2. Frontend (Terminal 2):
+```bash
+cd /home/lamvu/LenThucDonThongMinh/meal-planner/fe
+python3 -m http.server 3000
+```
+
+### 3. Mở trình duyệt:
+```
+http://localhost:3000
+```
+
+---
+
 Hệ thống quản lý thực đơn thông minh với AI Assistant, hỗ trợ tạo công thức món ăn, lên lịch bữa ăn, và tự động tạo danh sách mua sắm.
 
 ## 🚀 Tính năng

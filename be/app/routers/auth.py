@@ -69,3 +69,38 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     
     # 4. Trả về Token cho Frontend dùng
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+# --- API 3: LẤY THÔNG TIN USER HIỆN TẠI ---
+@router.get("/me", response_model=schemas.User)
+def get_current_user_info(current_user: models.User = Depends(utils.get_current_user)):
+    """
+    Lấy thông tin chi tiết của user đang đăng nhập
+    """
+    return current_user
+
+
+# --- API 4: CẬP NHẬT THÔNG TIN USER ---
+@router.put("/me", response_model=schemas.User)
+def update_user_profile(
+    profile_update: schemas.UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(utils.get_current_user)
+):
+    """
+    Cập nhật thông tin profile của user (chiều cao, cân nặng, ngày sinh, giới tính)
+    """
+    if profile_update.height is not None:
+        current_user.height = profile_update.height
+    if profile_update.weight is not None:
+        current_user.weight = profile_update.weight
+    if profile_update.date_of_birth is not None:
+        current_user.date_of_birth = profile_update.date_of_birth
+    if profile_update.gender is not None:
+        current_user.gender = profile_update.gender
+    if profile_update.dietary_preferences is not None:
+        current_user.dietary_preferences = profile_update.dietary_preferences
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user

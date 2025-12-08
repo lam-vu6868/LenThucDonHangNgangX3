@@ -14,7 +14,7 @@ load_dotenv()
 # Lấy Secret Key từ .env, nếu không có thì dùng chuỗi mặc định (chỉ dùng khi dev)
 SECRET_KEY = os.getenv("SECRET_KEY", "chuoi_bi_mat_mac_dinh_khong_ai_biet")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30 # Token hết hạn sau 30 phút
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # Token hết hạn sau 8 giờ (thay vì 30 phút)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")

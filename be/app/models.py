@@ -28,7 +28,7 @@ class User(Base):
     meal_plans = relationship("MealPlan", back_populates="owner")
     ratings = relationship("Rating", back_populates="user")
 
-# --- 2. RECIPES ---
+# --- 2. RECIPES (công thức và mmón ăn)--- 
 class Recipe(Base):
     __tablename__ = "recipes"
 
@@ -57,7 +57,7 @@ class Recipe(Base):
     meal_plans = relationship("MealPlan", back_populates="recipe")
     ratings = relationship("Rating", back_populates="recipe")
 
-# --- 3. INGREDIENTS ---
+# --- 3. INGREDIENTS (nguyên liệu) ---
 class Ingredient(Base):
     __tablename__ = "ingredients"
 
@@ -69,7 +69,7 @@ class Ingredient(Base):
     recipe_id = Column(Integer, ForeignKey("recipes.id"))
     recipe = relationship("Recipe", back_populates="ingredients")
 
-# --- 4. MEAL PLANS ---
+# --- 4. MEAL PLANS (KẾ HOẠCH ĂN UỐNG)---
 class MealPlan(Base):
     __tablename__ = "meal_plans"
 
@@ -87,7 +87,7 @@ class MealPlan(Base):
     owner = relationship("User", back_populates="meal_plans")
     recipe = relationship("Recipe", back_populates="meal_plans")
 
-# --- 5. RATINGS ---
+# --- 5. RATINGS (đánh giá) ---
 class Rating(Base):
     __tablename__ = "ratings"
 

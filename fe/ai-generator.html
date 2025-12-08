@@ -3,25 +3,490 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meal Planner Dashboard</title>
+    <title>AI Generator - Meal Planner</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Quản lý thực đơn hàng ngày</h1>
-        <nav>
-            <a href="index.html">AI Gợi ý Menu</a> |
-            <a href="planner.html">Lịch ăn uống</a> |
-            <a href="recipes.html">Công thức</a> |
-            <a href="shopping.html">Đi chợ</a> |
-            <a href="ai-generator.html">AI Gợi ý</a>
-        </nav>
-        <hr>
-        <div id="app">
-            <p>Chào mừng bạn đến với ứng dụng Meal Planner.</p>
-        </div>
+    <div class="main-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🍽️ Meal Planner</h2>
+                <div class="user-info">
+                    <p><strong id="user-email">user@example.com</strong></p>
+                </div>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html"><span>🏠</span> Dashboard</a></li>
+                    <li><a href="recipes.html"><span>📖</span> Công thức</a></li>
+                    <li><a href="planner.html"><span>📅</span> Lịch ăn</a></li>
+                    <li><a href="shopping.html"><span>🛒</span> Shopping List</a></li>
+                    <li><a href="ai-generator.html" class="active"><span>✨</span> AI Generator</a></li>
+                    <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container">
+                <h1>✨ AI Gợi ý món ăn</h1>
+
+                <!-- Tab Navigation -->
+                <div class="ai-tabs">
+                    <button class="tab-btn active" onclick="switchTab('generate')">Tạo món từ nguyên liệu</button>
+                    <button class="tab-btn" onclick="switchTab('weekly')">Lên kế hoạch tuần</button>
+                    <button class="tab-btn" onclick="switchTab('search')">Tìm kiếm thông minh</button>
+                </div>
+
+                <!-- Generate Recipe Tab -->
+                <div id="generate-tab" class="ai-tab-content active">
+                    <div class="ai-card">
+                        <h2>🥘 Tạo món ăn từ nguyên liệu có sẵn</h2>
+                        <p>Nhập các nguyên liệu bạn có, AI sẽ gợi ý công thức phù hợp</p>
+                        
+                        <div class="form-group">
+                            <label>Nguyên liệu (cách nhau bằng dấu phẩy):</label>
+                            <textarea id="ingredients-input" rows="3" placeholder="VD: gà, cà chua, hành, tỏi, ớt"></textarea>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-block" onclick="generateRecipe()">
+                            ✨ Tạo công thức
+                        </button>
+                        
+                        <div id="generate-result" class="ai-result"></div>
+                    </div>
+                </div>
+
+                <!-- Weekly Plan Tab -->
+                <div id="weekly-tab" class="ai-tab-content">
+                    <div class="ai-card">
+                        <h2>📅 Lên kế hoạch ăn uống cả tuần</h2>
+                        <p>AI sẽ tạo thực đơn cân bằng dinh dưỡng cho 7 ngày</p>
+                        
+                        <div class="form-group">
+                            <label>Mức độ hoạt động:</label>
+                            <select id="activity-level">
+                                <option value="sedentary">Ít vận động (văn phòng)</option>
+                                <option value="light">Vận động nhẹ (1-3 ngày/tuần)</option>
+                                <option value="moderate" selected>Vận động vừa (3-5 ngày/tuần)</option>
+                                <option value="active">Vận động nhiều (6-7 ngày/tuần)</option>
+                                <option value="very_active">Vận động cực nhiều (vận động viên)</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-block" onclick="generateWeeklyPlan()">
+                            ✨ Tạo kế hoạch tuần
+                        </button>
+                        
+                        <div id="weekly-result" class="ai-result"></div>
+                    </div>
+                </div>
+
+                <!-- Search Tab -->
+                <div id="search-tab" class="ai-tab-content">
+                    <div class="ai-card">
+                        <h2>🔍 Tìm kiếm thông minh</h2>
+                        <p>Mô tả món ăn bạn muốn, AI sẽ tìm công thức phù hợp</p>
+                        
+                        <div class="form-group">
+                            <label>Mô tả món ăn:</label>
+                            <textarea id="search-query" rows="3" placeholder="VD: Món Việt Nam, ít cay, giàu protein, nấu nhanh"></textarea>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-block" onclick="searchRecipes()">
+                            🔍 Tìm kiếm
+                        </button>
+                        
+                        <div id="search-result" class="ai-result"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
+
     <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
     <script src="js/utils.js"></script>
+    <script>
+        checkAuth();
+        
+        // Load user info
+        async function loadUserInfo() {
+            try {
+                const userInfo = await apiGetCurrentUser();
+                document.getElementById('user-email').textContent = userInfo.email;
+            } catch (error) {
+                console.error('Error loading user:', error);
+            }
+        }
+        loadUserInfo();
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.ai-tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function generateRecipe() {
+            const ingredients = document.getElementById('ingredients-input').value.trim();
+            
+            if (!ingredients) {
+                showToast('Vui lòng nhập nguyên liệu', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('generate-result');
+            resultDiv.innerHTML = '<div class="loading">AI đang tạo công thức... ⏳</div>';
+
+            try {
+                showLoading();
+                const ingredientsList = ingredients.split(',').map(i => i.trim());
+                const recipe = await apiGenerateRecipe(ingredientsList);
+                hideLoading();
+                
+                resultDiv.innerHTML = `
+                    <div class="success-message">
+                        <h3>✅ Đã tạo thành công!</h3>
+                        <div class="recipe-result">
+                            <h4>${recipe.name}</h4>
+                            <p><strong>Loại:</strong> ${recipe.category}</p>
+                            <p><strong>Thời gian:</strong> ${recipe.cooking_time} phút</p>
+                            
+                            <div class="nutrition-summary">
+                                <span>🔥 ${Math.round(recipe.calories)} kcal</span>
+                                <span>🥩 ${recipe.protein}g protein</span>
+                                <span>🍚 ${recipe.carbs}g carbs</span>
+                                <span>🧈 ${recipe.fat}g fat</span>
+                            </div>
+                            
+                            <h5>Nguyên liệu:</h5>
+                            <ul>
+                                ${recipe.ingredients.map(ing => 
+                                    `<li>${ing.name}: ${ing.amount} ${ing.unit}</li>`
+                                ).join('')}
+                            </ul>
+                            
+                            <h5>Hướng dẫn:</h5>
+                            <p style="white-space: pre-line;">${recipe.instructions}</p>
+                            
+                            <button class="btn btn-primary" onclick="saveGeneratedRecipe(${recipe.id})">
+                                💾 Lưu vào danh sách
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                showToast('Đã tạo công thức thành công!', 'success');
+            } catch (error) {
+                hideLoading();
+                resultDiv.innerHTML = `
+                    <div class="error-message">
+                        <p>❌ Lỗi: ${error.message}</p>
+                        <p>Vui lòng thử lại với nguyên liệu khác</p>
+                    </div>
+                `;
+                showToast('Lỗi tạo công thức: ' + error.message, 'error');
+            }
+        }
+
+        async function generateWeeklyPlan() {
+            const activityLevel = document.getElementById('activity-level').value;
+            const resultDiv = document.getElementById('weekly-result');
+            
+            resultDiv.innerHTML = '<div class="loading">AI đang lên kế hoạch... ⏳</div>';
+
+            try {
+                showLoading();
+                const plan = await apiSuggestWeeklyPlan(activityLevel);
+                hideLoading();
+                
+                const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
+                
+                resultDiv.innerHTML = `
+                    <div class="success-message">
+                        <h3>✅ Kế hoạch tuần đã sẵn sàng!</h3>
+                        <div class="weekly-plan">
+                            ${plan.map((day, index) => `
+                                <div class="day-plan">
+                                    <h4>${days[index]}</h4>
+                                    <div class="meals">
+                                        <div class="meal"><strong>Sáng:</strong> ${day.breakfast}</div>
+                                        <div class="meal"><strong>Trưa:</strong> ${day.lunch}</div>
+                                        <div class="meal"><strong>Tối:</strong> ${day.dinner}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                showToast('Đã tạo kế hoạch tuần!', 'success');
+            } catch (error) {
+                hideLoading();
+                resultDiv.innerHTML = `
+                    <div class="error-message">
+                        <p>❌ Lỗi: ${error.message}</p>
+                    </div>
+                `;
+                showToast('Lỗi: ' + error.message, 'error');
+            }
+        }
+
+        async function searchRecipes() {
+            const query = document.getElementById('search-query').value.trim();
+            
+            if (!query) {
+                showToast('Vui lòng nhập mô tả', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('search-result');
+            resultDiv.innerHTML = '<div class="loading">AI đang tìm kiếm... ⏳</div>';
+
+            try {
+                showLoading();
+                const results = await apiSearchRecipes(query);
+                hideLoading();
+                
+                if (!results || results.length === 0) {
+                    resultDiv.innerHTML = `
+                        <div class="info-message">
+                            <p>Không tìm thấy kết quả phù hợp</p>
+                            <p>Thử mô tả chi tiết hơn hoặc thay đổi từ khóa</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                resultDiv.innerHTML = `
+                    <div class="success-message">
+                        <h3>✅ Tìm thấy ${results.length} kết quả</h3>
+                        <div class="search-results">
+                            ${results.map(recipe => `
+                                <div class="search-result-item">
+                                    <h4>${recipe.name}</h4>
+                                    <p>${recipe.description || ''}</p>
+                                    <div class="result-meta">
+                                        <span>⏱️ ${recipe.cooking_time} phút</span>
+                                        <span>🔥 ${Math.round(recipe.calories)} kcal</span>
+                                        <span>${recipe.category}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                showToast(`Tìm thấy ${results.length} công thức!`, 'success');
+            } catch (error) {
+                hideLoading();
+                resultDiv.innerHTML = `
+                    <div class="error-message">
+                        <p>❌ Lỗi: ${error.message}</p>
+                    </div>
+                `;
+                showToast('Lỗi tìm kiếm: ' + error.message, 'error');
+            }
+        }
+
+        async function saveGeneratedRecipe(recipeId) {
+            showToast('Công thức đã được lưu tự động!', 'success');
+            setTimeout(() => {
+                window.location.href = 'recipes.html';
+            }, 1500);
+        }
+    </script>
+
+    <style>
+        .ai-tabs {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0;
+            border-bottom: 2px solid #eee;
+        }
+
+        .ai-tabs .tab-btn {
+            padding: 15px 25px;
+            border: none;
+            background: none;
+            color: #666;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .ai-tabs .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .ai-tab-content {
+            display: none;
+        }
+
+        .ai-tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        .ai-card {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .ai-card h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .ai-card > p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .ai-result {
+            margin-top: 30px;
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .success-message h3 {
+            color: #155724;
+            margin-bottom: 20px;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            border-radius: 10px;
+            padding: 20px;
+            color: #721c24;
+        }
+
+        .info-message {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            border-radius: 10px;
+            padding: 20px;
+            color: #0c5460;
+        }
+
+        .recipe-result {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .recipe-result h4 {
+            font-size: 1.8em;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .nutrition-summary {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .nutrition-summary span {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .recipe-result ul {
+            background: #f8f9fa;
+            padding: 20px 20px 20px 40px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .recipe-result li {
+            margin: 8px 0;
+        }
+
+        .weekly-plan {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .day-plan {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .day-plan h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .meals .meal {
+            padding: 10px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .search-results {
+            display: grid;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .search-result-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .search-result-item h4 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </body>
 </html>
