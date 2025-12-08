@@ -1,0 +1,20 @@
+# --- Core Framework (Chạy Server) ---
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.6.0
+
+# --- Database (Kết nối PostgreSQL) ---
+sqlalchemy>=2.0.25
+psycopg2-binary>=2.9.9
+alembic>=1.13.1
+
+# --- AI Integration (Google Gemini) ---
+google-generativeai>=0.3.2
+
+# --- Utilities (Tiện ích & Bảo mật) ---
+python-dotenv>=1.0.1      # Đọc file .env
+python-multipart>=0.0.9   # Xử lý upload ảnh hoặc form data (QUAN TRỌNG CHO LOGIN)
+passlib[bcrypt]>=1.7.4    # Mã hóa mật khẩu
+bcrypt<4.0.0              # Fix lỗi tương thích với passlib (dùng version 3.x)
+email-validator>=2.1.0    # Kiểm tra email
+python-jose[cryptography] # Tạo Token JWT

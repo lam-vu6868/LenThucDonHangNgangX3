@@ -1,0 +1,4 @@
+body { font-family: sans-serif; margin: 20px; line-height: 1.6; }
+nav a { text-decoration: none; color: blue; margin-right: 15px; font-weight: bold; }
+nav a:hover { text-decoration: underline; }
+.container { max-width: 1200px; margin: 0 auto; }
