@@ -120,6 +120,13 @@ async function apiCreateMealPlan(planData) {
     });
 }
 
+async function apiUpdateMealPlan(id, planData) {
+    return apiCall(`/plans/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(planData)
+    });
+}
+
 async function apiDeleteMealPlan(id) {
     return apiCall(`/plans/${id}`, {
         method: 'DELETE'

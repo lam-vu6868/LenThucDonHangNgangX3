@@ -238,41 +238,29 @@ async def suggest_weekly_meal_plan_with_recipes(user_data: dict) -> dict:
     target_calories = round(tdee + goal_adjustments.get(user_data.get("goal", "maintain"), 0))
     
     prompt = f"""
-Bạn là chuyên gia dinh dưỡng và đầu bếp chuyên nghiệp. Tạo thực đơn 7 ngày KÈM CÔNG THỨC CHI TIẾT cho:
+Bạn là chuyên gia dinh dưỡng. Tạo thực đơn 7 ngày KÈM CÔNG THỨC CHI TIẾT.
 
-**Thông tin người dùng:**
+**Thông tin:**
 - Giới tính: {user_data["gender"]}
-- Cân nặng: {user_data["weight"]}kg
-- Chiều cao: {user_data["height"]}cm
-- Tuổi: {age}
-- BMR: {bmr} kcal/ngày
-- TDEE: {round(tdee)} kcal/ngày
-- Mục tiêu: {user_data.get("goal", "maintain")}
+- Cân nặng: {user_data["weight"]}kg, Chiều cao: {user_data["height"]}cm, Tuổi: {age}
 - Calories mục tiêu: {target_calories} kcal/ngày
-- Hạn chế ăn uống: {user_data.get("dietary_preferences", "Không có")}
-- Ghi chú thêm: {user_data.get("notes", "Không có")}
+- Hạn chế: {user_data.get("dietary_preferences", "Không có")}
+- Ghi chú: {user_data.get("notes", "Không có")}
 
-**YÊU CẦU QUAN TRỌNG:**
-1. Tạo CÔNG THỨC ĐẦY ĐỦ cho mỗi món (nguyên liệu, cách nấu, dinh dưỡng)
-2. Mỗi món PHẢI có tên KHÁC NHAU (không trùng lặp)
-3. Cân đối dinh dưỡng theo tỷ lệ: 30% protein, 50% carbs, 20% fat
-4. Món ăn phù hợp văn hóa Việt Nam
-5. Dễ nấu, nguyên liệu dễ kiếm
+**QUAN TRỌNG - Trả về JSON hợp lệ (không có markdown, không có comments):**
 
-Trả về JSON với cấu trúc SAU (KHÔNG thêm markdown ```json):
 {{
     "total_calories_per_day": {target_calories},
     "recipes": [
         {{
-            "name": "Cơm gà hấp nấm đông cô",
-            "description": "Món cơm gà hấp thơm ngon, giàu protein",
-            "instructions": "Bước 1: Ướp gà với muối, tiêu\\nBước 2: Hấp gà với nấm 20 phút\\nBước 3: Nấu cơm và trộn đều",
+            "name": "Com ga Hai Nam",
+            "description": "Mon com ga thom ngon",
+            "instructions": "Buoc 1: Uop ga\\nBuoc 2: Hap ga 20 phut\\nBuoc 3: Nau com",
             "servings": 1,
             "prep_time": 30,
             "ingredients": [
-                {{"name": "Gạo", "amount": 100, "unit": "gram"}},
-                {{"name": "Thịt gà", "amount": 150, "unit": "gram"}},
-                {{"name": "Nấm đông cô", "amount": 50, "unit": "gram"}}
+                {{"name": "Gao", "amount": 100, "unit": "gram"}},
+                {{"name": "Ga", "amount": 150, "unit": "gram"}}
             ],
             "nutrition": {{
                 "calories": 450,
@@ -280,34 +268,49 @@ Trả về JSON với cấu trúc SAU (KHÔNG thêm markdown ```json):
                 "carbs": 55,
                 "fat": 10
             }},
-            "tags": "Lunch,High-Protein"
+            "tags": "Lunch"
         }}
     ],
     "meal_plan": [
         {{
             "day": "Monday",
-            "breakfast": {{"name": "Cháo yến mạch chuối", "calories": 350, "protein": 12, "carbs": 60, "fat": 8}},
-            "lunch": {{"name": "Cơm gà hấp nấm đông cô", "calories": 450, "protein": 35, "carbs": 55, "fat": 10}},
-            "dinner": {{"name": "Bún cá dinh dưỡng", "calories": 400, "protein": 28, "carbs": 50, "fat": 12}}
+            "breakfast": {{"name": "Chao yen mach chuoi", "calories": 350, "protein": 12, "carbs": 60, "fat": 8}},
+            "lunch": {{"name": "Com ga Hai Nam", "calories": 450, "protein": 35, "carbs": 55, "fat": 10}},
+            "dinner": {{"name": "Bun ca", "calories": 400, "protein": 28, "carbs": 50, "fat": 12}}
         }}
     ]
 }}
 
 LƯU Ý:
-- PHẢI có đủ 7 ngày (Monday -> Sunday)
-- Mỗi món trong "recipes" phải khớp với tên món trong "meal_plan"
-- Tổng calories/ngày = breakfast + lunch + dinner ≈ {target_calories}
-- Ingredients phải có đơn vị cụ thể (gram, ml, cái...)
+- KHÔNG dùng dấu ngoặc kép trong tên món (dùng khoảng trắng thay vì dấu)
+- Đủ 7 ngày (Monday -> Sunday)
+- Tên món trong recipes khớp với meal_plan
+- Tổng calories ≈ {target_calories}
+- CHỈ trả về JSON, KHÔNG thêm text khác
 """
     
     try:
         response = model.generate_content(prompt)
         result_text = response.text.strip()
         
-        if result_text.startswith("```json"):
-            result_text = result_text.replace("```json", "").replace("```", "").strip()
+        # Xử lý markdown
+        if result_text.startswith("```"):
+            # Tìm vị trí bắt đầu và kết thúc của JSON
+            start = result_text.find("{")
+            end = result_text.rfind("}") + 1
+            if start != -1 and end != 0:
+                result_text = result_text[start:end]
+        
+        # Log để debug
+        print(f"AI Response length: {len(result_text)} chars")
+        print(f"First 200 chars: {result_text[:200]}")
         
         result = json.loads(result_text)
         return result
+    except json.JSONDecodeError as e:
+        # Log lỗi chi tiết
+        print(f"JSON Error: {str(e)}")
+        print(f"Problem text: {result_text[max(0, e.pos-50):e.pos+50]}")
+        raise Exception(f"AI trả về JSON không hợp lệ. Vui lòng thử lại. Chi tiết: {str(e)}")
     except Exception as e:
-        raise Exception(f"Lỗi khi tạo thực đơn: {str(e)}")
+        raise Exception(f"Lỗi khi gọi AI: {str(e)}")

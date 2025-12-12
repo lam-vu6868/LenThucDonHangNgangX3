@@ -67,6 +67,13 @@
                 <div id="recipes-grid" class="recipes-grid">
                     <div class="loading">Đang tải...</div>
                 </div>
+
+                <!-- Pagination -->
+                <div id="pagination" class="pagination" style="display: none;">
+                    <button class="btn btn-secondary" id="prev-btn" onclick="prevPage()">◀ Trước</button>
+                    <span id="page-info">Trang 1</span>
+                    <button class="btn btn-secondary" id="next-btn" onclick="nextPage()">Sau ▶</button>
+                </div>
             </div>
         </main>
     </div>
@@ -226,11 +233,17 @@
         }
         loadUserInfo();
 
+        // Pagination variables
+        let currentPage = 1;
+        let totalPages = 1;
+        const RECIPES_PER_PAGE = 9; // 3x3 grid
+
         // Search functionality
         let searchTimeout;
         document.getElementById('search-input').addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
+                currentPage = 1; // Reset về trang 1
                 loadRecipes(e.target.value);
             }, 500);
         });
@@ -243,16 +256,37 @@
                 
                 const params = {};
                 if (search) params.search = search;
-                if (category) params.category = category;
+                if (category) params.tags = category;
                 if (diet) params.dietary_restrictions = diet;
                 
                 const recipes = await apiGetRecipes(params);
                 allRecipes = recipes;
-                displayRecipes(recipes);
+                
+                // Tính toán phân trang
+                totalPages = Math.ceil(recipes.length / RECIPES_PER_PAGE);
+                displayCurrentPage();
+                updatePagination();
             } catch (error) {
                 console.error('Error loading recipes:', error);
                 showToast('Lỗi tải công thức: ' + error.message, 'error');
             }
+        }
+
+        function displayCurrentPage() {
+            const grid = document.getElementById('recipes-grid');
+            
+            if (!allRecipes || allRecipes.length === 0) {
+                grid.innerHTML = '<div class="loading">Không tìm thấy công thức nào</div>';
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+            
+            // Lấy recipes của trang hiện tại
+            const startIndex = (currentPage - 1) * RECIPES_PER_PAGE;
+            const endIndex = startIndex + RECIPES_PER_PAGE;
+            const recipesToShow = allRecipes.slice(startIndex, endIndex);
+            
+            displayRecipes(recipesToShow);
         }
 
         function displayRecipes(recipes) {
@@ -264,7 +298,9 @@
             }
             
             grid.innerHTML = recipes.map(recipe => {
-                const icon = getRecipeIcon(recipe.category);
+                // Extract category from tags
+                const category = recipe.tags ? recipe.tags.split(',')[0] : 'Lunch';
+                const icon = getRecipeIcon(category);
                 const avgRating = recipe.average_rating || 0;
                 const stars = '⭐'.repeat(Math.round(avgRating));
                 
@@ -274,14 +310,14 @@
                         <div class="recipe-body">
                             <div class="recipe-title">${recipe.name}</div>
                             <div class="recipe-meta">
-                                <span>⏱️ ${recipe.cooking_time} phút</span>
-                                <span>🔥 ${Math.round(recipe.calories)} kcal</span>
+                                <span>⏱️ ${recipe.prep_time || 30} phút</span>
+                                <span>🔥 ${Math.round(recipe.calories || 0)} kcal</span>
                             </div>
                             ${recipe.average_rating ? `<div class="recipe-rating">${stars} ${avgRating.toFixed(1)}</div>` : ''}
                             <div class="recipe-tags">
-                                <span class="tag">${recipe.category}</span>
-                                ${recipe.dietary_restrictions ? recipe.dietary_restrictions.split(',').map(d => 
-                                    `<span class="tag">${d.trim()}</span>`
+                                <span class="tag">${category}</span>
+                                ${recipe.tags ? recipe.tags.split(',').slice(1).map(tag => 
+                                    `<span class="tag">${tag.trim()}</span>`
                                 ).join('') : ''}
                             </div>
                         </div>
@@ -300,6 +336,43 @@
             return icons[category] || '🍴';
         }
 
+        // Pagination functions
+        function updatePagination() {
+            const paginationDiv = document.getElementById('pagination');
+            const pageInfo = document.getElementById('page-info');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            
+            if (totalPages <= 1) {
+                paginationDiv.style.display = 'none';
+                return;
+            }
+            
+            paginationDiv.style.display = 'block';
+            pageInfo.textContent = `Trang ${currentPage} / ${totalPages} (${allRecipes.length} món)`;
+            
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayCurrentPage();
+                updatePagination();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayCurrentPage();
+                updatePagination();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
         // Show recipe detail
         async function showRecipeDetail(id) {
             try {
@@ -312,13 +385,16 @@
                 const avgRating = recipe.average_rating || 0;
                 const stars = '⭐'.repeat(Math.round(avgRating));
                 
+                // Extract category from tags (first tag)
+                const category = recipe.tags ? recipe.tags.split(',')[0] : 'Lunch';
+                
                 document.getElementById('detail-content').innerHTML = `
                     <div class="detail-section">
                         <h3>Thông tin</h3>
-                        <p><strong>Loại:</strong> ${recipe.category}</p>
-                        <p><strong>Thời gian:</strong> ${recipe.cooking_time} phút</p>
+                        <p><strong>Loại:</strong> ${category}</p>
+                        <p><strong>Thời gian:</strong> ${recipe.prep_time || 30} phút</p>
                         <p><strong>Mô tả:</strong> ${recipe.description || 'Không có'}</p>
-                        ${recipe.dietary_restrictions ? `<p><strong>Chế độ ăn:</strong> ${recipe.dietary_restrictions}</p>` : ''}
+                        ${recipe.tags ? `<p><strong>Tags:</strong> ${recipe.tags}</p>` : ''}
                     </div>
                     
                     <div class="detail-section">
@@ -392,7 +468,11 @@
                 const stars = parseInt(document.getElementById('rating-stars').value);
                 const comment = document.getElementById('rating-comment').value;
                 
-                await apiRateRecipe(currentRecipe.id, { rating: stars, comment });
+                await apiRateRecipe(currentRecipe.id, { 
+                    stars: stars, 
+                    comment: comment,
+                    recipe_id: currentRecipe.id 
+                });
                 showToast('Đánh giá thành công!', 'success');
                 closeDetailModal();
                 loadRecipes();
@@ -418,8 +498,11 @@
             
             document.getElementById('modal-title').textContent = 'Sửa công thức';
             document.getElementById('recipe-name').value = currentRecipe.name;
-            document.getElementById('recipe-category').value = currentRecipe.category;
-            document.getElementById('recipe-time').value = currentRecipe.cooking_time;
+            
+            // Extract category from tags
+            const category = currentRecipe.tags ? currentRecipe.tags.split(',')[0] : 'Lunch';
+            document.getElementById('recipe-category').value = category;
+            document.getElementById('recipe-time').value = currentRecipe.prep_time || 30;
             document.getElementById('recipe-description').value = currentRecipe.description || '';
             document.getElementById('recipe-instructions').value = currentRecipe.instructions;
             
@@ -478,13 +561,13 @@
                 const dietary = Array.from(document.querySelectorAll('.checkbox-group input:checked'))
                     .map(cb => cb.value).join(', ');
                 
+                const category = document.getElementById('recipe-category').value;
                 const recipeData = {
                     name: document.getElementById('recipe-name').value,
-                    category: document.getElementById('recipe-category').value,
-                    cooking_time: parseInt(document.getElementById('recipe-time').value),
+                    tags: category + (dietary ? ',' + dietary : ''),
+                    prep_time: parseInt(document.getElementById('recipe-time').value),
                     description: document.getElementById('recipe-description').value,
                     instructions: document.getElementById('recipe-instructions').value,
-                    dietary_restrictions: dietary || null,
                     ingredients
                 };
                 
@@ -553,6 +636,13 @@
                 
                 const data = await response.json();
                 aiGeneratedRecipe = data.recipe;
+                // Map category to tags
+                if (data.recipe.category && !data.recipe.tags) {
+                    data.recipe.tags = data.recipe.category;
+                }
+                if (data.recipe.cooking_time && !data.recipe.prep_time) {
+                    data.recipe.prep_time = data.recipe.cooking_time;
+                }
                 displayAIRecipe(data.recipe);
             } catch (error) {
                 resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
@@ -602,8 +692,8 @@
             let html = `
                 <div class="ai-recipe-preview" style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
                     <h3>📝 ${recipe.name}</h3>
-                    <p><strong>Loại:</strong> ${recipe.category || 'Lunch'}</p>
-                    <p><strong>Thời gian:</strong> ${recipe.cooking_time || 30} phút</p>
+                    <p><strong>Loại:</strong> ${recipe.category || recipe.tags || 'Lunch'}</p>
+                    <p><strong>Thời gian:</strong> ${recipe.prep_time || recipe.cooking_time || 30} phút</p>
                     
                     <div style="margin: 15px 0;">
                         <h4>Nguyên liệu:</h4>
@@ -665,10 +755,13 @@
             if (!aiGeneratedRecipe) return;
             
             try {
+                const category = aiGeneratedRecipe.category || aiGeneratedRecipe.tags || 'Lunch';
+                const dietary = aiGeneratedRecipe.dietary_info ? aiGeneratedRecipe.dietary_info.join(',') : '';
+                
                 const recipeData = {
                     name: aiGeneratedRecipe.name,
-                    category: aiGeneratedRecipe.category || 'Lunch',
-                    cooking_time: aiGeneratedRecipe.cooking_time || 30,
+                    tags: category + (dietary ? ',' + dietary : ''),
+                    prep_time: aiGeneratedRecipe.prep_time || aiGeneratedRecipe.cooking_time || 30,
                     servings: aiGeneratedRecipe.servings || 1,
                     description: aiGeneratedRecipe.description || '',
                     instructions: aiGeneratedRecipe.instructions,
@@ -680,8 +773,7 @@
                     calories: aiGeneratedRecipe.calories || 0,
                     protein: aiGeneratedRecipe.protein || 0,
                     carbs: aiGeneratedRecipe.carbs || 0,
-                    fat: aiGeneratedRecipe.fat || 0,
-                    dietary_restrictions: aiGeneratedRecipe.dietary_info ? aiGeneratedRecipe.dietary_info.join(', ') : null
+                    fat: aiGeneratedRecipe.fat || 0
                 };
                 
                 await apiCreateRecipe(recipeData);

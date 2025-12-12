@@ -162,6 +162,15 @@ async def suggest_weekly_meal_plan(
         else:
             start_date = datetime.today().date()
         
+        # XÓA các meal plans cũ trong khoảng 7 ngày này (nếu có)
+        end_date = start_date + timedelta(days=6)
+        db.query(models.MealPlan).filter(
+            models.MealPlan.owner_id == current_user.id,
+            models.MealPlan.date >= start_date,
+            models.MealPlan.date <= end_date
+        ).delete()
+        db.flush()  # Xóa ngay để tránh conflict
+        
         for day_index, day_plan in enumerate(ai_result["meal_plan"]):
             current_date = start_date + timedelta(days=day_index)
             

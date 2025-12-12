@@ -177,6 +177,12 @@
             padding: 15px;
             border-radius: 10px;
             position: relative;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .meal-card:active {
+            cursor: grabbing;
         }
 
         .meal-name {
@@ -434,9 +440,9 @@
         </div>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/utils.js"></script>
+    <script src="js/config.js?v=2"></script>
+    <script src="js/api.js?v=2"></script>
+    <script src="js/utils.js?v=2"></script>
     <script>
         checkAuth();
         
@@ -458,8 +464,21 @@
 
         // Drag and Drop
         function dragStart(event) {
-            event.dataTransfer.setData('recipeId', event.target.dataset.recipeId);
-            event.target.style.opacity = '0.5';
+            const target = event.target.closest('.recipe-chip, .meal-card');
+            if (!target) return;
+            
+            // Nếu kéo từ recipe-chip
+            if (target.classList.contains('recipe-chip')) {
+                event.dataTransfer.setData('recipeId', target.dataset.recipeId);
+                event.dataTransfer.setData('type', 'recipe');
+            }
+            // Nếu kéo từ meal-card (món đã có trong lịch)
+            else if (target.classList.contains('meal-card')) {
+                event.dataTransfer.setData('planId', target.dataset.planId);
+                event.dataTransfer.setData('type', 'meal');
+            }
+            
+            target.style.opacity = '0.5';
         }
 
         function allowDrop(event) {
@@ -471,16 +490,88 @@
             event.preventDefault();
             event.currentTarget.classList.remove('drag-over');
             
-            const recipeId = event.dataTransfer.getData('recipeId');
+            const type = event.dataTransfer.getData('type');
             const slot = event.currentTarget;
-            const date = slot.dataset.date;
-            const mealType = slot.dataset.mealType;
+            const targetDate = slot.dataset.date;
+            const targetMealType = slot.dataset.mealType;
             
-            addMealPlanFromDrop(parseInt(recipeId), date, mealType);
+            if (type === 'recipe') {
+                // Kéo từ danh sách recipes
+                const recipeId = event.dataTransfer.getData('recipeId');
+                addMealPlanFromDrop(parseInt(recipeId), targetDate, targetMealType);
+            } else if (type === 'meal') {
+                // Kéo từ ô khác (swap)
+                const sourcePlanId = parseInt(event.dataTransfer.getData('planId'));
+                swapMealPlans(sourcePlanId, targetDate, targetMealType);
+            }
+        }
+
+        async function swapMealPlans(sourcePlanId, targetDate, targetMealType) {
+            try {
+                // Check if API function exists
+                if (typeof apiUpdateMealPlan !== 'function') {
+                    throw new Error('API chưa load xong. Vui lòng refresh trang (Ctrl+Shift+R)');
+                }
+                
+                // Tìm món nguồn (đang kéo)
+                const sourcePlan = mealPlans.find(p => p.id === sourcePlanId);
+                if (!sourcePlan) return;
+                
+                // Tìm món đích (ô đang thả vào)
+                const targetPlan = mealPlans.find(p => 
+                    p.date === targetDate && p.meal_type === targetMealType
+                );
+                
+                if (targetPlan) {
+                    // SWAP: Đổi chỗ 2 món
+                    // Cập nhật món nguồn sang vị trí đích
+                    await apiUpdateMealPlan(sourcePlan.id, {
+                        recipe_id: sourcePlan.recipe.id,
+                        date: targetDate,
+                        meal_type: targetMealType,
+                        servings: sourcePlan.servings
+                    });
+                    
+                    // Cập nhật món đích sang vị trí nguồn
+                    await apiUpdateMealPlan(targetPlan.id, {
+                        recipe_id: targetPlan.recipe.id,
+                        date: sourcePlan.date,
+                        meal_type: sourcePlan.meal_type,
+                        servings: targetPlan.servings
+                    });
+                    
+                    showToast('🔄 Đã đổi chỗ 2 món ăn!', 'success');
+                } else {
+                    // DI CHUYỂN: Chỉ có món nguồn, chuyển sang ô trống
+                    await apiUpdateMealPlan(sourcePlan.id, {
+                        recipe_id: sourcePlan.recipe.id,
+                        date: targetDate,
+                        meal_type: targetMealType,
+                        servings: sourcePlan.servings
+                    });
+                    
+                    showToast('✅ Đã di chuyển món ăn!', 'success');
+                }
+                
+                loadMealPlans();
+            } catch (error) {
+                showToast('Lỗi: ' + error.message, 'error');
+            }
         }
 
         async function addMealPlanFromDrop(recipeId, date, mealType) {
             try {
+                // Kiểm tra xem ô này đã có món ăn chưa
+                const existingPlan = mealPlans.find(plan => 
+                    plan.date === date && plan.meal_type === mealType
+                );
+                
+                // Nếu đã có món, XÓA món cũ trước
+                if (existingPlan) {
+                    await apiDeleteMealPlan(existingPlan.id);
+                }
+                
+                // Thêm món mới
                 const data = {
                     recipe_id: recipeId,
                     date: date,
@@ -489,7 +580,7 @@
                 };
                 
                 await apiCreateMealPlan(data);
-                showToast('Đã thêm vào lịch!', 'success');
+                showToast(existingPlan ? '✅ Đã cập nhật món ăn!' : '✅ Đã thêm vào lịch!', 'success');
                 loadMealPlans();
             } catch (error) {
                 showToast('Lỗi: ' + error.message, 'error');
@@ -665,7 +756,7 @@
                 );
                 if (slot) {
                     slot.innerHTML = `
-                        <div class="meal-card" data-plan-id="${plan.id}">
+                        <div class="meal-card" data-plan-id="${plan.id}" draggable="true" ondragstart="dragStart(event)">
                             <div class="meal-name">${plan.recipe.name}</div>
                             <div class="meal-info">${plan.servings} phần • ${Math.round(plan.recipe.calories)} kcal</div>
                             <button class="delete-meal" onclick="deleteMealPlan(${plan.id}, event)">×</button>

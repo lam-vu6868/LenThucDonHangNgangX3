@@ -64,22 +64,36 @@ cd meal-planner
 cd be
 
 # Tạo virtual environment
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # Linux/Mac
 # hoặc: venv\Scripts\activate  # Windows
 
 # Cài đặt dependencies
 pip install -r requirements.txt
 
-# Tạo file .env từ template
-cp .env.example .env
-# Sau đó điền thông tin vào .env
+# Tạo file .env
+nano .env
+# Copy nội dung bên dưới và điền thông tin
 ```
 
 ### 3. Setup PostgreSQL
+
+**Cài đặt PostgreSQL (nếu chưa có):**
 ```bash
-# Tạo database
+# Ubuntu/Debian
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+
+# Kiểm tra PostgreSQL đã chạy chưa
+sudo systemctl status postgresql
+```
+
+**Tạo Database:**
+```bash
+# Đăng nhập PostgreSQL
 sudo -u postgres psql
+
+# Trong psql, chạy các lệnh sau:
 CREATE DATABASE meal_planner_db;
 CREATE USER meal_user WITH PASSWORD 'your_password';
 ALTER USER meal_user CREATEDB;
@@ -89,29 +103,56 @@ GRANT ALL PRIVILEGES ON SCHEMA public TO meal_user;
 \q
 ```
 
-### 4. Chạy Backend Server
+### 4. Chạy Migration (Tạo tables)
 ```bash
 cd be
 source venv/bin/activate
+
+# Chạy file main.py sẽ tự động tạo tables
 python main.py
+# Hoặc chạy với uvicorn:
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
+
+**Lưu ý**: Lần chạy đầu tiên, backend sẽ tự động tạo các bảng trong database.
 
 Server sẽ chạy tại: http://127.0.0.1:8000
 API Docs: http://127.0.0.1:8000/docs
 
 ### 5. Chạy Frontend
 ```bash
-cd fe
-# Mở file HTML bằng Live Server hoặc trực tiếp trong browser
-```
-
-## 🔑 Cấu hình môi trường (.env)
+Tạo file `be/.env` với nội dung:
 
 ```env
+# Database
 DATABASE_URL=postgresql://meal_user:your_password@localhost:5432/meal_planner_db
-SECRET_KEY=your-secret-key-here
+
+# JWT Authentication
+SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
 ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+ACCESS_TOKEN_EXPIRE_MINUTES=480
+
+# Google Gemini AI
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# Server
+PORT=8000
+```
+
+**Quan trọng - Thay đổi các giá trị sau:**
+1. `your_password` → Mật khẩu PostgreSQL bạn đã tạo ở bước 3
+2. `your-gemini-api-key-here` → API key từ Google
+
+**Lấy Gemini API Key:**
+1. Truy cập: https://aistudio.google.com/apikey
+2. Đăng nhập bằng tài khoản Google
+3. Click "Create API Key"
+4. Copy key và paste vào file `.env`
+
+**Tạo SECRET_KEY mới (khuyến nghị):**
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```UTES=30
 GEMINI_API_KEY=your-gemini-api-key
 PORT=8000
 ```
@@ -133,28 +174,49 @@ PORT=8000
 - `GET /recipes/{id}` - Chi tiết recipe
 - `POST /recipes/` - Tạo recipe mới
 - `PUT /recipes/{id}` - Cập nhật recipe
-- `DELETE /recipes/{id}` - Xóa recipe
-- `POST /recipes/{id}/ratings` - Đánh giá recipe
-- `GET /recipes/{id}/ratings` - Xem đánh giá
+- `✅ Kiểm tra cài đặt
 
-### Meal Plans
-- `GET /plans/` - Lấy meal plans
-- `POST /plans/` - Thêm món vào lịch
-- `PUT /plans/{id}` - Cập nhật plan
-- `DELETE /plans/{id}` - Xóa plan
-
-### AI Assistant
-- `POST /ai/generate-recipe` - Tạo recipe từ nguyên liệu
-- `POST /ai/suggest-weekly-plan` - Gợi ý thực đơn tuần
-- `POST /ai/search-recipes` - Tìm kiếm món ăn AI
-
-### Shopping List
-- `GET /shopping/list` - Tạo shopping list tự động
-
-## 🧪 Test APIs
-
-### Test API thủ công
+### 1. Test Backend
 ```bash
+# Kiểm tra server đang chạy
+curl http://127.0.0.1:8000/
+
+# Test đăng ký user mới
+curl -X POST http://127.0.0.1:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test123","full_name":"Test User"}'
+
+# Test đăng nhập
+curl -X POST http://127.0.0.1:8000/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=test@example.com&password=test123"
+```
+
+### 2. Test Frontend
+1. Mở browser vào: http://localhost:3000
+2. Đăng nhập bằng: `vul59170@gmail.com` / `123456` (hoặc tài khoản vừa tạo)
+3. Thử các chức năng:
+   - Xem danh sách recipes
+   - Tạo meal plan
+   - Sử dụng AI generator
+
+### 3. Test Gemini AI
+```bash
+cd be
+source venv/bin/activate
+
+# Chạy script test
+python -c "
+import os
+from dotenv import load_dotenv
+import google.generativeai as genai
+
+load_dotenv()
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+model = genai.GenerativeModel('gemini-1.5-flash')
+response = model.generate_content('Hello')
+print('✅ Gemini API hoạt động:', response.text[:50])
+"
 cd be
 
 # Test đăng ký
@@ -177,6 +239,32 @@ python test_all_models.py  # Tìm models còn quota
 
 ## 📂 Cấu trúc dự án
 
+
+## 🐛 Xử lý lỗi thường gặp
+
+### Lỗi: "Could not connect to database"
+- Kiểm tra PostgreSQL đã chạy: `sudo systemctl status postgresql`
+- Kiểm tra thông tin trong `.env` đúng chưa
+- Test kết nối: `psql -U meal_user -d meal_planner_db -h localhost`
+
+### Lỗi: "ModuleNotFoundError"
+- Đảm bảo đã activate venv: `source venv/bin/activate`
+- Cài lại dependencies: `pip install -r requirements.txt`
+
+### Lỗi: "Port 8000 already in use"
+```bash
+# Tìm và kill process đang dùng port
+lsof -ti:8000 | xargs kill -9
+```
+
+### Lỗi: "GEMINI_API_KEY not found"
+- Kiểm tra file `.env` có tồn tại trong folder `be/`
+- Kiểm tra API key có đúng format không
+
+### Frontend không load được
+- Đảm bảo backend đang chạy ở port 8000
+- Kiểm tra `fe/js/config.js` có đúng URL backend
+- Mở DevTools (F12) xem lỗi trong Console
 ```
 meal-planner/
 ├── be/                          # Backend
