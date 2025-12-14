@@ -122,47 +122,118 @@
             try {
                 showLoading();
                 const data = await apiGetShoppingList(startDate, endDate);
+                console.log('Shopping list data:', data); // Debug
                 displayShoppingList(data);
                 hideLoading();
             } catch (error) {
                 hideLoading();
+                console.error('Error loading shopping list:', error);
                 showToast('Lỗi tải danh sách: ' + error.message, 'error');
+                // Hiển thị thông báo lỗi trong container
+                const container = document.getElementById('shopping-content');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>❌ Lỗi: ${error.message}</p>
+                        <p>Vui lòng thử lại hoặc kiểm tra kết nối server</p>
+                    </div>
+                `;
             }
         }
 
         function displayShoppingList(data) {
             const container = document.getElementById('shopping-content');
             
-            if (!data.ingredients || data.ingredients.length === 0) {
+            // Kiểm tra dữ liệu hợp lệ
+            if (!data) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <p>Không có nguyên liệu nào trong khoảng thời gian này</p>
-                        <p>Hãy thêm bữa ăn vào lịch trước!</p>
+                        <p>❌ Không nhận được dữ liệu từ server</p>
+                        <p>Vui lòng thử lại</p>
                     </div>
                 `;
                 return;
             }
 
-            // Group ingredients by category (optional enhancement)
-            const ingredientsList = data.ingredients.map(ing => `
-                <div class="ingredient-item">
-                    <input type="checkbox" id="ing-${ing.name}" onchange="toggleIngredient(this)">
-                    <label for="ing-${ing.name}">
-                        <span class="ing-name">${ing.name}</span>
-                        <span class="ing-amount">${ing.total_amount} ${ing.unit}</span>
-                    </label>
-                </div>
-            `).join('');
+            // Xử lý ingredients - API có thể trả về 'items' hoặc 'ingredients'
+            const ingredients = data.items || data.ingredients || [];
+            const recipes = data.recipes || [];
+            
+            // Kiểm tra nếu có message từ server
+            if (data.message && ingredients.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>📅 ${data.message}</p>
+                        <p>Hãy thêm bữa ăn vào lịch trước!</p>
+                        <p style="margin-top: 20px;">
+                            <a href="planner.html" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; text-decoration: none;">
+                                ➕ Thêm bữa ăn vào lịch
+                            </a>
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (!Array.isArray(ingredients)) {
+                console.warn('Ingredients is not an array:', ingredients);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>❌ Dữ liệu không đúng định dạng</p>
+                        <p>Vui lòng thử lại</p>
+                    </div>
+                `;
+                return;
+            }
 
-            const recipesList = data.recipes.map(recipe => `
-                <div class="recipe-tag">${recipe}</div>
-            `).join('');
+            if (ingredients.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>📅 Không có nguyên liệu nào trong khoảng thời gian này</p>
+                        <p>Hãy thêm bữa ăn vào lịch trước!</p>
+                        <p style="margin-top: 20px;">
+                            <a href="planner.html" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; text-decoration: none;">
+                                ➕ Thêm bữa ăn vào lịch
+                            </a>
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Tạo danh sách nguyên liệu với xử lý lỗi
+            const ingredientsList = ingredients.map((ing, index) => {
+                // Xử lý các format khác nhau của ingredient
+                const name = ing.name || ing.ingredient_name || `Nguyên liệu ${index + 1}`;
+                const amount = ing.total_amount || ing.amount || ing.quantity || 0;
+                const unit = ing.unit || 'phần';
+                // Tạo ID an toàn (loại bỏ ký tự đặc biệt)
+                const safeId = `ing-${index}-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
+                
+                return `
+                    <div class="ingredient-item">
+                        <input type="checkbox" id="${safeId}" onchange="toggleIngredient(this)">
+                        <label for="${safeId}">
+                            <span class="ing-name">${name}</span>
+                            <span class="ing-amount">${amount} ${unit}</span>
+                        </label>
+                    </div>
+                `;
+            }).join('');
+
+            // Tạo danh sách món ăn với xử lý lỗi
+            const recipesList = Array.isArray(recipes) 
+                ? recipes.map(recipe => {
+                    // Xử lý cả string và object
+                    const recipeName = typeof recipe === 'string' ? recipe : (recipe.name || 'Món ăn');
+                    return `<div class="recipe-tag">${recipeName}</div>`;
+                }).join('')
+                : '';
 
             container.innerHTML = `
                 <div class="shopping-summary">
                     <h3>📊 Tổng quan</h3>
-                    <p><strong>${data.ingredients.length}</strong> nguyên liệu cần mua</p>
-                    <p><strong>${data.recipes.length}</strong> món ăn</p>
+                    <p><strong>${ingredients.length}</strong> nguyên liệu cần mua</p>
+                    <p><strong>${recipes.length || 0}</strong> món ăn</p>
                 </div>
 
                 <div class="shopping-section">
@@ -172,12 +243,14 @@
                     </div>
                 </div>
 
+                ${recipesList ? `
                 <div class="shopping-section">
                     <h3>📖 Các món ăn</h3>
                     <div class="recipes-tags">
                         ${recipesList}
                     </div>
                 </div>
+                ` : ''}
             `;
         }
 

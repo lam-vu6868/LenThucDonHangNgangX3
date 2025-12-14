@@ -239,6 +239,14 @@
 
         // Load on page ready
         loadDashboard();
+        
+        // Đảm bảo modal ẩn khi trang load
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('profile-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        });
 
         // Profile Modal Functions
         function showProfileModal() {
