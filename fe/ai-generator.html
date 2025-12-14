@@ -152,37 +152,59 @@
             try {
                 showLoading();
                 const ingredientsList = ingredients.split(',').map(i => i.trim());
-                const recipe = await apiGenerateRecipe(ingredientsList);
+                const response = await apiGenerateRecipe(ingredientsList);
                 hideLoading();
+                
+                // Xử lý response - có thể là recipe trực tiếp hoặc có wrapper
+                const recipe = response.recipe || response;
+                
+                // Kiểm tra và xử lý ingredients
+                const ingredientsList_html = (recipe.ingredients && Array.isArray(recipe.ingredients) && recipe.ingredients.length > 0)
+                    ? recipe.ingredients.map(ing => {
+                        const name = ing.name || ing.ingredient || 'Nguyên liệu';
+                        const amount = ing.amount || ing.quantity || ing.amount || 1;
+                        const unit = ing.unit || 'phần';
+                        return `<li>${name}: ${amount} ${unit}</li>`;
+                    }).join('')
+                    : '<li>Không có thông tin nguyên liệu</li>';
+                
+                // Xử lý các trường có thể thiếu
+                const recipeName = recipe.name || 'Công thức mới';
+                const category = recipe.category || recipe.tags || 'Lunch';
+                const cookingTime = recipe.cooking_time || recipe.prep_time || 30;
+                const calories = recipe.calories || 0;
+                const protein = recipe.protein || 0;
+                const carbs = recipe.carbs || 0;
+                const fat = recipe.fat || 0;
+                const instructions = recipe.instructions || 'Chưa có hướng dẫn';
+                const recipeId = recipe.id || null;
                 
                 resultDiv.innerHTML = `
                     <div class="success-message">
                         <h3>✅ Đã tạo thành công!</h3>
                         <div class="recipe-result">
-                            <h4>${recipe.name}</h4>
-                            <p><strong>Loại:</strong> ${recipe.category}</p>
-                            <p><strong>Thời gian:</strong> ${recipe.cooking_time} phút</p>
+                            <h4>${recipeName}</h4>
+                            <p><strong>Loại:</strong> ${category}</p>
+                            <p><strong>Thời gian:</strong> ${cookingTime} phút</p>
                             
                             <div class="nutrition-summary">
-                                <span>🔥 ${Math.round(recipe.calories)} kcal</span>
-                                <span>🥩 ${recipe.protein}g protein</span>
-                                <span>🍚 ${recipe.carbs}g carbs</span>
-                                <span>🧈 ${recipe.fat}g fat</span>
+                                <span>🔥 ${Math.round(calories)} kcal</span>
+                                <span>🥩 ${protein}g protein</span>
+                                <span>🍚 ${carbs}g carbs</span>
+                                <span>🧈 ${fat}g fat</span>
                             </div>
                             
                             <h5>Nguyên liệu:</h5>
                             <ul>
-                                ${recipe.ingredients.map(ing => 
-                                    `<li>${ing.name}: ${ing.amount} ${ing.unit}</li>`
-                                ).join('')}
+                                ${ingredientsList_html}
                             </ul>
                             
                             <h5>Hướng dẫn:</h5>
-                            <p style="white-space: pre-line;">${recipe.instructions}</p>
+                            <p style="white-space: pre-line;">${instructions}</p>
                             
-                            <button class="btn btn-primary" onclick="saveGeneratedRecipe(${recipe.id})">
+                            ${recipeId ? `<button class="btn btn-primary" onclick="saveGeneratedRecipe(${recipeId})">
                                 💾 Lưu vào danh sách
-                            </button>
+                            </button>` : '<p style="color: #666; font-style: italic;">Công thức này chưa có ID, không thể lưu trực tiếp</p>'}
                         </div>
                     </div>
                 `;
@@ -208,8 +230,16 @@
 
             try {
                 showLoading();
-                const plan = await apiSuggestWeeklyPlan(activityLevel);
+                const response = await apiSuggestWeeklyPlan(activityLevel);
                 hideLoading();
+                
+                // Xử lý response - có thể là plan trực tiếp hoặc có wrapper
+                const plan = response.plan || response.weekly_plan || response;
+                
+                // Kiểm tra plan có phải là array không
+                if (!Array.isArray(plan)) {
+                    throw new Error('Kế hoạch tuần không đúng định dạng');
+                }
                 
                 const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ nhật'];
                 
@@ -217,16 +247,21 @@
                     <div class="success-message">
                         <h3>✅ Kế hoạch tuần đã sẵn sàng!</h3>
                         <div class="weekly-plan">
-                            ${plan.map((day, index) => `
+                            ${plan.map((day, index) => {
+                                const breakfast = day.breakfast || day.morning || 'Chưa có';
+                                const lunch = day.lunch || day.noon || 'Chưa có';
+                                const dinner = day.dinner || day.evening || 'Chưa có';
+                                return `
                                 <div class="day-plan">
-                                    <h4>${days[index]}</h4>
+                                    <h4>${days[index] || `Ngày ${index + 1}`}</h4>
                                     <div class="meals">
-                                        <div class="meal"><strong>Sáng:</strong> ${day.breakfast}</div>
-                                        <div class="meal"><strong>Trưa:</strong> ${day.lunch}</div>
-                                        <div class="meal"><strong>Tối:</strong> ${day.dinner}</div>
+                                        <div class="meal"><strong>Sáng:</strong> ${breakfast}</div>
+                                        <div class="meal"><strong>Trưa:</strong> ${lunch}</div>
+                                        <div class="meal"><strong>Tối:</strong> ${dinner}</div>
                                     </div>
                                 </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 `;
@@ -256,10 +291,18 @@
 
             try {
                 showLoading();
-                const results = await apiSearchRecipes(query);
+                const response = await apiSearchRecipes(query);
                 hideLoading();
                 
-                if (!results || results.length === 0) {
+                // Xử lý response - có thể là results trực tiếp hoặc có wrapper
+                const results = response.results || response.suggestions || response;
+                
+                // Kiểm tra results có phải là array không
+                if (!Array.isArray(results)) {
+                    throw new Error('Kết quả tìm kiếm không đúng định dạng');
+                }
+                
+                if (results.length === 0) {
                     resultDiv.innerHTML = `
                         <div class="info-message">
                             <p>Không tìm thấy kết quả phù hợp</p>
@@ -273,17 +316,24 @@
                     <div class="success-message">
                         <h3>✅ Tìm thấy ${results.length} kết quả</h3>
                         <div class="search-results">
-                            ${results.map(recipe => `
+                            ${results.map(recipe => {
+                                const name = recipe.name || 'Công thức';
+                                const description = recipe.description || '';
+                                const cookingTime = recipe.cooking_time || recipe.prep_time || 0;
+                                const calories = recipe.calories || 0;
+                                const category = recipe.category || recipe.tags || 'Lunch';
+                                return `
                                 <div class="search-result-item">
-                                    <h4>${recipe.name}</h4>
-                                    <p>${recipe.description || ''}</p>
+                                    <h4>${name}</h4>
+                                    <p>${description}</p>
                                     <div class="result-meta">
-                                        <span>⏱️ ${recipe.cooking_time} phút</span>
-                                        <span>🔥 ${Math.round(recipe.calories)} kcal</span>
-                                        <span>${recipe.category}</span>
+                                        <span>⏱️ ${cookingTime} phút</span>
+                                        <span>🔥 ${Math.round(calories)} kcal</span>
+                                        <span>${category}</span>
                                     </div>
                                 </div>
-                            `).join('')}
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                 `;
