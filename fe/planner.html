@@ -770,12 +770,27 @@
             event.stopPropagation();
             if (!confirm('Xóa bữa ăn này?')) return;
             
+            // Tìm meal card element để xóa ngay (optimistic update)
+            const mealCard = document.querySelector(`.meal-card[data-plan-id="${planId}"]`);
+            const slot = mealCard ? mealCard.closest('.meal-slot') : null;
+            
+            // Xóa ngay khỏi DOM để UI phản hồi nhanh
+            if (slot) {
+                slot.innerHTML = '<div class="slot-placeholder">+</div>';
+            }
+            
+            // Xóa khỏi array mealPlans
+            mealPlans = mealPlans.filter(plan => plan.id !== planId);
+            
             try {
+                // Gọi API xóa ở background
                 await apiDeleteMealPlan(planId);
                 showToast('Đã xóa!', 'success');
-                loadMealPlans();
+                // Không cần reload lại vì đã xóa trực tiếp từ DOM
             } catch (error) {
+                // Nếu lỗi, reload lại để khôi phục
                 showToast('Lỗi: ' + error.message, 'error');
+                loadMealPlans();
             }
         }
 

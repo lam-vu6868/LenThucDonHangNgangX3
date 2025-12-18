@@ -234,10 +234,12 @@
                 hideLoading();
                 
                 // Xử lý response - có thể là plan trực tiếp hoặc có wrapper
-                const plan = response.plan || response.weekly_plan || response;
+                // Response từ backend có cấu trúc: { meal_plan: [...], total_calories_per_day: ... }
+                const mealPlan = response.meal_plan || response.plan || response.weekly_plan || response;
                 
-                // Kiểm tra plan có phải là array không
-                if (!Array.isArray(plan)) {
+                // Kiểm tra mealPlan có phải là array không
+                if (!Array.isArray(mealPlan)) {
+                    console.error('Response structure:', response);
                     throw new Error('Kế hoạch tuần không đúng định dạng');
                 }
                 
@@ -246,18 +248,39 @@
                 resultDiv.innerHTML = `
                     <div class="success-message">
                         <h3>✅ Kế hoạch tuần đã sẵn sàng!</h3>
+                        ${response.total_calories_per_day ? `<p><strong>Tổng calories mỗi ngày:</strong> ${response.total_calories_per_day} kcal</p>` : ''}
                         <div class="weekly-plan">
-                            ${plan.map((day, index) => {
-                                const breakfast = day.breakfast || day.morning || 'Chưa có';
-                                const lunch = day.lunch || day.noon || 'Chưa có';
-                                const dinner = day.dinner || day.evening || 'Chưa có';
+                            ${mealPlan.map((day, index) => {
+                                // Lấy name từ object breakfast/lunch/dinner
+                                let breakfastName = 'Chưa có';
+                                let lunchName = 'Chưa có';
+                                let dinnerName = 'Chưa có';
+                                
+                                if (day.breakfast) {
+                                    breakfastName = (typeof day.breakfast === 'object' && day.breakfast.name) 
+                                        ? day.breakfast.name 
+                                        : (typeof day.breakfast === 'string' ? day.breakfast : day.morning || 'Chưa có');
+                                }
+                                
+                                if (day.lunch) {
+                                    lunchName = (typeof day.lunch === 'object' && day.lunch.name) 
+                                        ? day.lunch.name 
+                                        : (typeof day.lunch === 'string' ? day.lunch : day.noon || 'Chưa có');
+                                }
+                                
+                                if (day.dinner) {
+                                    dinnerName = (typeof day.dinner === 'object' && day.dinner.name) 
+                                        ? day.dinner.name 
+                                        : (typeof day.dinner === 'string' ? day.dinner : day.evening || 'Chưa có');
+                                }
+                                
                                 return `
                                 <div class="day-plan">
                                     <h4>${days[index] || `Ngày ${index + 1}`}</h4>
                                     <div class="meals">
-                                        <div class="meal"><strong>Sáng:</strong> ${breakfast}</div>
-                                        <div class="meal"><strong>Trưa:</strong> ${lunch}</div>
-                                        <div class="meal"><strong>Tối:</strong> ${dinner}</div>
+                                        <div class="meal"><strong>Sáng:</strong> ${breakfastName}</div>
+                                        <div class="meal"><strong>Trưa:</strong> ${lunchName}</div>
+                                        <div class="meal"><strong>Tối:</strong> ${dinnerName}</div>
                                     </div>
                                 </div>
                                 `;

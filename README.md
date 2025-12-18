@@ -4,7 +4,7 @@
 
 ### 1. Backend (Terminal 1):
 ```bash
-cd /home/lamvu/LenThucDonThongMinh/meal-planner/be
+cd /home/lamvu/LenThucDonThongMinh/be
 source venv/bin/activate
 uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
@@ -325,5 +325,5 @@ Lý Lâm Vũ & Châu Khang Duy- Meal Planner Project
 
 - FastAPI framework
 - Google Gemini AI
-- PostgreSQL
+- PostgreSQL 
 - SQLAlchemy

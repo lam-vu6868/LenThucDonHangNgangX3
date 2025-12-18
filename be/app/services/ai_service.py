@@ -74,6 +74,10 @@ Trả về JSON với cấu trúc SAU (KHÔNG thêm markdown ```json):
         if result_text.startswith("```json"):
             result_text = result_text.replace("```json", "").replace("```", "").strip()
         
+        # Đảm bảo encoding UTF-8
+        if isinstance(result_text, bytes):
+            result_text = result_text.decode('utf-8')
+        
         recipe_data = json.loads(result_text)
         return recipe_data
     except Exception as e:
@@ -147,6 +151,10 @@ Lưu ý:
         if result_text.startswith("```json"):
             result_text = result_text.replace("```json", "").replace("```", "").strip()
         
+        # Đảm bảo encoding UTF-8
+        if isinstance(result_text, bytes):
+            result_text = result_text.decode('utf-8')
+        
         meal_plan = json.loads(result_text)
         return meal_plan
     except Exception as e:
@@ -187,6 +195,10 @@ Trả về JSON (KHÔNG markdown):
         
         if result_text.startswith("```json"):
             result_text = result_text.replace("```json", "").replace("```", "").strip()
+        
+        # Đảm bảo encoding UTF-8
+        if isinstance(result_text, bytes):
+            result_text = result_text.decode('utf-8')
         
         suggestions = json.loads(result_text)
         return suggestions
@@ -253,14 +265,14 @@ Bạn là chuyên gia dinh dưỡng. Tạo thực đơn 7 ngày KÈM CÔNG THỨ
     "total_calories_per_day": {target_calories},
     "recipes": [
         {{
-            "name": "Com ga Hai Nam",
-            "description": "Mon com ga thom ngon",
-            "instructions": "Buoc 1: Uop ga\\nBuoc 2: Hap ga 20 phut\\nBuoc 3: Nau com",
+            "name": "Cơm gà Hải Nam",
+            "description": "Món cơm gà thơm ngon",
+            "instructions": "Bước 1: Ướp gà\\nBước 2: Hấp gà 20 phút\\nBước 3: Nấu cơm",
             "servings": 1,
             "prep_time": 30,
             "ingredients": [
-                {{"name": "Gao", "amount": 100, "unit": "gram"}},
-                {{"name": "Ga", "amount": 150, "unit": "gram"}}
+                {{"name": "Gạo", "amount": 100, "unit": "gram"}},
+                {{"name": "Gà", "amount": 150, "unit": "gram"}}
             ],
             "nutrition": {{
                 "calories": 450,
@@ -274,19 +286,20 @@ Bạn là chuyên gia dinh dưỡng. Tạo thực đơn 7 ngày KÈM CÔNG THỨ
     "meal_plan": [
         {{
             "day": "Monday",
-            "breakfast": {{"name": "Chao yen mach chuoi", "calories": 350, "protein": 12, "carbs": 60, "fat": 8}},
-            "lunch": {{"name": "Com ga Hai Nam", "calories": 450, "protein": 35, "carbs": 55, "fat": 10}},
-            "dinner": {{"name": "Bun ca", "calories": 400, "protein": 28, "carbs": 50, "fat": 12}}
+            "breakfast": {{"name": "Cháo yến mạch chuối", "calories": 350, "protein": 12, "carbs": 60, "fat": 8}},
+            "lunch": {{"name": "Cơm gà Hải Nam", "calories": 450, "protein": 35, "carbs": 55, "fat": 10}},
+            "dinner": {{"name": "Bún cá", "calories": 400, "protein": 28, "carbs": 50, "fat": 12}}
         }}
     ]
 }}
 
-LƯU Ý:
-- KHÔNG dùng dấu ngoặc kép trong tên món (dùng khoảng trắng thay vì dấu)
+LƯU Ý QUAN TRỌNG:
+- PHẢI dùng tiếng Việt CÓ DẤU đầy đủ (ví dụ: "Cháo yến mạch chuối", "Cơm gà Hải Nam", "Bún cá")
 - Đủ 7 ngày (Monday -> Sunday)
 - Tên món trong recipes khớp với meal_plan
 - Tổng calories ≈ {target_calories}
-- CHỈ trả về JSON, KHÔNG thêm text khác
+- CHỈ trả về JSON hợp lệ, KHÔNG thêm markdown hay text khác
+- Đảm bảo JSON encoding UTF-8
 """
     
     try:
@@ -301,10 +314,15 @@ LƯU Ý:
             if start != -1 and end != 0:
                 result_text = result_text[start:end]
         
+        # Đảm bảo encoding UTF-8
+        if isinstance(result_text, bytes):
+            result_text = result_text.decode('utf-8')
+        
         # Log để debug
         print(f"AI Response length: {len(result_text)} chars")
         print(f"First 200 chars: {result_text[:200]}")
         
+        # Parse JSON (mặc định Python json.loads() đã hỗ trợ UTF-8)
         result = json.loads(result_text)
         return result
     except json.JSONDecodeError as e:

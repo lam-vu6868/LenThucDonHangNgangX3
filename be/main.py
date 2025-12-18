@@ -1,8 +1,10 @@
 import os
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
+import json
 
 # 1. Import kết nối DB
 from app.database import engine
@@ -21,6 +23,13 @@ app = FastAPI(
     description="API quản lý thực đơn với AI Assistant (Google Gemini)",
     version="1.0.0"
 )
+
+# Middleware để đảm bảo response UTF-8
+@app.middleware("http")
+async def add_utf8_header(request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Type"] = "application/json; charset=utf-8"
+    return response
 
 # Cấu hình CORS
 origins = [

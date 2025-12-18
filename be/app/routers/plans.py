@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import date
 from app.database import get_db
@@ -24,7 +24,9 @@ def get_meal_plans(
     - start_date: Ngày bắt đầu (YYYY-MM-DD)
     - end_date: Ngày kết thúc (YYYY-MM-DD)
     """
-    query = db.query(models.MealPlan).filter(models.MealPlan.owner_id == current_user.id)
+    query = db.query(models.MealPlan).options(
+        joinedload(models.MealPlan.recipe)
+    ).filter(models.MealPlan.owner_id == current_user.id)
     
     if start_date:
         query = query.filter(models.MealPlan.date >= start_date)

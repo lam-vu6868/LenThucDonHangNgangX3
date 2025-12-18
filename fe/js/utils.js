@@ -90,3 +90,11 @@ function getCurrentWeek() {
         end: sunday.toISOString().split('T')[0]
     };
 }
+
+// Escape HTML to prevent XSS and preserve Vietnamese characters
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
