@@ -195,3 +195,21 @@ def get_recipe_ratings(recipe_id: int, db: Session = Depends(get_db)):
     """Lấy tất cả đánh giá của món ăn"""
     ratings = db.query(models.Rating).filter(models.Rating.recipe_id == recipe_id).all()
     return ratings
+
+# --- 8. LẤY ĐÁNH GIÁ CỦA USER HIỆN TẠI CHO MÓN ĂN ---
+@router.get("/{recipe_id}/ratings/my", response_model=schemas.Rating)
+def get_my_rating(
+    recipe_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Lấy đánh giá của user hiện tại cho món ăn"""
+    rating = db.query(models.Rating).filter(
+        models.Rating.recipe_id == recipe_id,
+        models.Rating.user_id == current_user.id
+    ).first()
+    
+    if not rating:
+        raise HTTPException(status_code=404, detail="Bạn chưa đánh giá món ăn này")
+    
+    return rating

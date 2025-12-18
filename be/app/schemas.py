@@ -25,6 +25,7 @@ class UserCreate(UserBase):
 
 class UserProfileUpdate(BaseModel):
     """Schema for updating user profile"""
+    full_name: Optional[str] = None
     height: Optional[float] = None
     weight: Optional[float] = None
     date_of_birth: Optional[date] = None
@@ -107,5 +108,27 @@ class Rating(RatingBase):
     id: int
     user_id: int
     created_at: datetime
+    class Config:
+        from_attributes = True
+
+# --- 7. SCHEMAS CHO SHOPPING LIST ITEM ---
+class ShoppingListItemBase(BaseModel):
+    ingredient_name: str
+    amount: float
+    unit: str
+    recipe_id: Optional[int] = None
+
+class ShoppingListItemCreate(ShoppingListItemBase):
+    pass
+
+class ShoppingListItemUpdate(BaseModel):
+    is_purchased: bool
+
+class ShoppingListItem(ShoppingListItemBase):
+    id: int
+    user_id: int
+    is_purchased: bool
+    created_at: datetime
+    updated_at: datetime
     class Config:
         from_attributes = True

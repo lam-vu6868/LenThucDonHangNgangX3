@@ -1,22 +1,21 @@
 # 🍽️ Meal Planner - AI-Powered Recipe & Meal Planning System
 
-## 🚀 LỆNH CHẠY WEB
+## 🚀 LỆNH CHẠY WEB (WSL/Ubuntu)
 
-### 1. Backend (Terminal 1):
+### 1. Chạy backend + frontend (1 lệnh duy nhất)
+Đứng trong thư mục project (ví dụ: `/mnt/d/LenThucDonHangNgangX3`) và chạy:
 ```bash
-cd /home/lamvu/LenThucDonThongMinh/be
-source venv/bin/activate
-uvicorn main:app --reload --host 127.0.0.1 --port 8000
+chmod +x start.sh   # chỉ cần làm 1 lần
+./start.sh          # lần sau chỉ cần chạy lệnh này
 ```
 
-### 2. Frontend (Terminal 2):
-```bash
-cd /home/lamvu/LenThucDonThongMinh/meal-planner/fe
-python3 -m http.server 3000
-```
+Script `start.sh` sẽ:
+- Khởi động **backend** (`uvicorn main:app --reload --host 127.0.0.1 --port 8000`)
+- Khởi động **frontend** (`python3 -m http.server 3000` trong thư mục `fe/`)
 
-### 3. Mở trình duyệt:
-```
+### 2. Mở trình duyệt:
+Mở link:
+```text
 http://localhost:3000
 ```
 

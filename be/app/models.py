@@ -28,7 +28,7 @@ class User(Base):
     meal_plans = relationship("MealPlan", back_populates="owner")
     ratings = relationship("Rating", back_populates="user")
 
-# --- 2. RECIPES (công thức và mmón ăn)--- 
+# --- 2. RECIPES (công thức và món ăn)--- 
 class Recipe(Base):
     __tablename__ = "recipes"
 
@@ -104,3 +104,23 @@ class Rating(Base):
 
     user = relationship("User", back_populates="ratings")
     recipe = relationship("Recipe", back_populates="ratings")
+
+# --- 6. SHOPPING LIST ITEMS (danh sách mua sắm) ---
+class ShoppingListItem(Base):
+    __tablename__ = "shopping_list_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ingredient_name = Column(String, index=True)  # Tên nguyên liệu
+    amount = Column(Float)  # Số lượng
+    unit = Column(String)  # Đơn vị
+    is_purchased = Column(Boolean, default=False)  # Đã mua chưa
+    
+    recipe_id = Column(Integer, ForeignKey("recipes.id"), nullable=True)  # Món ăn nào (có thể null nếu tự thêm)
+    user_id = Column(Integer, ForeignKey("users.id"))  # User nào
+    
+    # Thời gian
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    user = relationship("User")
+    recipe = relationship("Recipe")

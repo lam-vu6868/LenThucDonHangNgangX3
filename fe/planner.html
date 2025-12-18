@@ -325,6 +325,23 @@
             border-radius: 8px;
             margin-top: 15px;
         }
+
+        .ingredient-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: end;
+        }
+
+        .ingredient-row input {
+            width: 100%;
+        }
+
+        .btn-block {
+            width: 100%;
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -344,7 +361,6 @@
                     <li><a href="recipes.html"><span>📖</span> Công thức</a></li>
                     <li><a href="planner.html" class="active"><span>📅</span> Lịch ăn</a></li>
                     <li><a href="shopping.html"><span>🛒</span> Shopping List</a></li>
-                    <li><a href="ai-generator.html"><span>✨</span> AI Generator</a></li>
                     <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
                 </ul>
             </nav>
@@ -359,7 +375,8 @@
                         <button class="btn btn-secondary" onclick="previousWeek()">◀ Tuần trước</button>
                         <span id="week-label">Tuần này</span>
                         <button class="btn btn-secondary" onclick="nextWeek()">Tuần sau ▶</button>
-                        <button class="btn btn-primary" onclick="showAIWeeklyModal()" style="margin-left: auto;">✨ AI tạo thực đơn tuần</button>
+                        <button class="btn btn-primary" onclick="showCreateRecipeModal()" style="margin-left: 10px;">🍳 Tạo món ăn mới</button>
+                        <button class="btn btn-primary" onclick="showAIWeeklyModal()" style="margin-left: 10px;">✨ AI tạo thực đơn tuần</button>
                     </div>
                 </div>
 
@@ -391,6 +408,113 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Create Recipe Modal -->
+    <div id="create-recipe-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>🍳 Tạo món ăn mới</h2>
+                <button class="close-btn" onclick="closeCreateRecipeModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <p style="color: #666; margin-bottom: 20px;">
+                    Tạo món ăn mới theo sở thích của bạn (ví dụ: Cá nướng, Gà kho...)
+                </p>
+                
+                <div class="form-group">
+                    <label>Tên món ăn: *</label>
+                    <input type="text" id="new-recipe-name" class="form-control" placeholder="VD: Cá nướng" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Mô tả:</label>
+                    <textarea id="new-recipe-description" class="form-control" rows="2" placeholder="Mô tả ngắn về món ăn..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Loại món:</label>
+                    <select id="new-recipe-tags" class="form-control">
+                        <option value="Breakfast">🍳 Sáng</option>
+                        <option value="Lunch" selected>🍜 Trưa</option>
+                        <option value="Dinner">🍽️ Tối</option>
+                        <option value="Snack">🍪 Phụ</option>
+                    </select>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Thời gian chuẩn bị (phút):</label>
+                        <input type="number" id="new-recipe-prep-time" class="form-control" value="30" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Số phần:</label>
+                        <input type="number" id="new-recipe-servings" class="form-control" value="2" min="1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Nguyên liệu: *</label>
+                    <div id="ingredients-list" style="margin-bottom: 10px;"></div>
+                    <button type="button" class="btn btn-secondary" onclick="addIngredientRow()" style="width: 100%;">
+                        ➕ Thêm nguyên liệu
+                    </button>
+                </div>
+                
+                <div class="form-group">
+                    <label>Hướng dẫn nấu:</label>
+                    <textarea id="new-recipe-instructions" class="form-control" rows="4" placeholder="Các bước nấu món ăn..."></textarea>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>Calories:</label>
+                        <input type="number" id="new-recipe-calories" class="form-control" value="0" min="0" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Protein (g):</label>
+                        <input type="number" id="new-recipe-protein" class="form-control" value="0" min="0" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Carbs (g):</label>
+                        <input type="number" id="new-recipe-carbs" class="form-control" value="0" min="0" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Fat (g):</label>
+                        <input type="number" id="new-recipe-fat" class="form-control" value="0" min="0" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="add-to-meal-plan" checked> 
+                        Thêm vào lịch sau khi tạo
+                    </label>
+                </div>
+                
+                <div id="add-to-meal-plan-options" style="margin-left: 25px; margin-bottom: 20px;">
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label>Ngày:</label>
+                        <input type="date" id="new-recipe-date" class="form-control">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label>Bữa ăn:</label>
+                        <select id="new-recipe-meal-type" class="form-control">
+                            <option value="Breakfast">🍳 Sáng</option>
+                            <option value="Lunch" selected>🍜 Trưa</option>
+                            <option value="Dinner">🍽️ Tối</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary btn-block" onclick="createNewRecipe()">
+                    ✅ Tạo món ăn
+                </button>
+                
+                <div id="create-recipe-result" style="margin-top: 20px;"></div>
+            </div>
+        </div>
     </div>
 
     <!-- AI Weekly Meal Plan Modal -->
@@ -791,6 +915,212 @@
                 // Nếu lỗi, reload lại để khôi phục
                 showToast('Lỗi: ' + error.message, 'error');
                 loadMealPlans();
+            }
+        }
+
+        // Create Recipe Functions
+        let ingredientCount = 0;
+
+        function showCreateRecipeModal() {
+            const modal = document.getElementById('create-recipe-modal');
+            modal.style.display = 'flex';
+            document.getElementById('create-recipe-result').innerHTML = '';
+            
+            // Reset form
+            document.getElementById('new-recipe-name').value = '';
+            document.getElementById('new-recipe-description').value = '';
+            document.getElementById('new-recipe-tags').value = 'Lunch';
+            document.getElementById('new-recipe-prep-time').value = '30';
+            document.getElementById('new-recipe-servings').value = '2';
+            document.getElementById('new-recipe-instructions').value = '';
+            document.getElementById('new-recipe-calories').value = '0';
+            document.getElementById('new-recipe-protein').value = '0';
+            document.getElementById('new-recipe-carbs').value = '0';
+            document.getElementById('new-recipe-fat').value = '0';
+            document.getElementById('new-recipe-date').value = currentWeekStart;
+            document.getElementById('new-recipe-meal-type').value = 'Lunch';
+            
+            // Clear ingredients
+            ingredientCount = 0;
+            document.getElementById('ingredients-list').innerHTML = '';
+            addIngredientRow(); // Add first row
+            
+            // Toggle add to meal plan options
+            toggleAddToMealPlanOptions();
+            
+            // Add event listener for checkbox
+            const checkbox = document.getElementById('add-to-meal-plan');
+            if (checkbox) {
+                checkbox.removeEventListener('change', toggleAddToMealPlanOptions);
+                checkbox.addEventListener('change', toggleAddToMealPlanOptions);
+            }
+        }
+
+        function closeCreateRecipeModal() {
+            document.getElementById('create-recipe-modal').style.display = 'none';
+        }
+
+        function addIngredientRow() {
+            const container = document.getElementById('ingredients-list');
+            const row = document.createElement('div');
+            row.className = 'ingredient-row';
+            row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: end;';
+            row.id = `ingredient-row-${ingredientCount}`;
+            
+            row.innerHTML = `
+                <div>
+                    <input type="text" class="form-control ingredient-name" placeholder="Tên nguyên liệu" required>
+                </div>
+                <div>
+                    <input type="number" class="form-control ingredient-amount" placeholder="Số lượng" step="0.1" min="0" required>
+                </div>
+                <div>
+                    <input type="text" class="form-control ingredient-unit" placeholder="Đơn vị (g, ml...)" required>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary" onclick="removeIngredientRow(${ingredientCount})" style="padding: 12px 15px;">×</button>
+                </div>
+            `;
+            
+            container.appendChild(row);
+            ingredientCount++;
+        }
+
+        function removeIngredientRow(id) {
+            const row = document.getElementById(`ingredient-row-${id}`);
+            if (row) row.remove();
+        }
+
+        function toggleAddToMealPlanOptions() {
+            const checkbox = document.getElementById('add-to-meal-plan');
+            const options = document.getElementById('add-to-meal-plan-options');
+            if (checkbox && options) {
+                options.style.display = checkbox.checked ? 'block' : 'none';
+            }
+        }
+
+        async function createNewRecipe() {
+            const name = document.getElementById('new-recipe-name').value.trim();
+            const description = document.getElementById('new-recipe-description').value.trim();
+            const tags = document.getElementById('new-recipe-tags').value;
+            const prepTime = parseInt(document.getElementById('new-recipe-prep-time').value) || 30;
+            const servings = parseInt(document.getElementById('new-recipe-servings').value) || 2;
+            const instructions = document.getElementById('new-recipe-instructions').value.trim();
+            const calories = parseFloat(document.getElementById('new-recipe-calories').value) || 0;
+            const protein = parseFloat(document.getElementById('new-recipe-protein').value) || 0;
+            const carbs = parseFloat(document.getElementById('new-recipe-carbs').value) || 0;
+            const fat = parseFloat(document.getElementById('new-recipe-fat').value) || 0;
+            const addToMealPlan = document.getElementById('add-to-meal-plan').checked;
+            
+            const resultDiv = document.getElementById('create-recipe-result');
+            
+            // Validation
+            if (!name) {
+                resultDiv.innerHTML = '<div class="error">⚠️ Vui lòng nhập tên món ăn!</div>';
+                return;
+            }
+            
+            // Collect ingredients
+            const ingredients = [];
+            document.querySelectorAll('.ingredient-row').forEach(row => {
+                const nameInput = row.querySelector('.ingredient-name');
+                const amountInput = row.querySelector('.ingredient-amount');
+                const unitInput = row.querySelector('.ingredient-unit');
+                
+                if (nameInput.value.trim() && amountInput.value && unitInput.value.trim()) {
+                    ingredients.push({
+                        name: nameInput.value.trim(),
+                        amount: parseFloat(amountInput.value) || 0,
+                        unit: unitInput.value.trim()
+                    });
+                }
+            });
+            
+            if (ingredients.length === 0) {
+                resultDiv.innerHTML = '<div class="error">⚠️ Vui lòng thêm ít nhất 1 nguyên liệu!</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="loading">⏳ Đang tạo món ăn...</div>';
+            
+            try {
+                // Create recipe
+                const recipeData = {
+                    name: name,
+                    description: description || null,
+                    tags: tags,
+                    prep_time: prepTime,
+                    servings: servings,
+                    instructions: instructions || null,
+                    calories: calories,
+                    protein: protein,
+                    carbs: carbs,
+                    fat: fat,
+                    ingredients: ingredients
+                };
+                
+                const newRecipe = await apiCreateRecipe(recipeData);
+                
+                // Reload recipes list
+                await loadRecipes();
+                
+                // Add to meal plan if checked
+                if (addToMealPlan) {
+                    const date = document.getElementById('new-recipe-date').value;
+                    const mealType = document.getElementById('new-recipe-meal-type').value;
+                    
+                    if (date) {
+                        try {
+                            await apiCreateMealPlan({
+                                recipe_id: newRecipe.id,
+                                date: date,
+                                meal_type: mealType,
+                                servings: servings
+                            });
+                            await loadMealPlans();
+                            resultDiv.innerHTML = `
+                                <div class="success">
+                                    ✅ Đã tạo món "${name}" và thêm vào lịch thành công!
+                                    <button class="btn btn-primary" onclick="closeCreateRecipeModal();" style="margin-top: 15px; width: 100%;">
+                                        Đóng
+                                    </button>
+                                </div>
+                            `;
+                        } catch (error) {
+                            resultDiv.innerHTML = `
+                                <div class="success">
+                                    ✅ Đã tạo món "${name}" thành công!<br>
+                                    ⚠️ Lỗi thêm vào lịch: ${error.message}
+                                    <button class="btn btn-primary" onclick="closeCreateRecipeModal();" style="margin-top: 15px; width: 100%;">
+                                        Đóng
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div class="success">
+                                ✅ Đã tạo món "${name}" thành công!
+                                <button class="btn btn-primary" onclick="closeCreateRecipeModal();" style="margin-top: 15px; width: 100%;">
+                                    Đóng
+                                </button>
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Đã tạo món "${name}" thành công!
+                            <button class="btn btn-primary" onclick="closeCreateRecipeModal();" style="margin-top: 15px; width: 100%;">
+                                Đóng
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                showToast('✅ Đã tạo món ăn mới!', 'success');
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
             }
         }
 

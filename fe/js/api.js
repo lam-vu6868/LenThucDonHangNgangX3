@@ -105,6 +105,22 @@ async function apiRateRecipe(id, rating) {
     });
 }
 
+async function apiGetMyRating(id) {
+    try {
+        return await apiCall(`/recipes/${id}/ratings/my`);
+    } catch (error) {
+        // Nếu chưa có đánh giá, trả về null thay vì throw error
+        if (error.message.includes('chưa đánh giá') || error.message.includes('404')) {
+            return null;
+        }
+        throw error;
+    }
+}
+
+async function apiGetRecipeRatings(id) {
+    return apiCall(`/recipes/${id}/ratings`);
+}
+
 // Meal Plan APIs
 async function apiGetMealPlans(startDate, endDate) {
     const params = new URLSearchParams();
@@ -136,6 +152,33 @@ async function apiDeleteMealPlan(id) {
 // Shopping List API
 async function apiGetShoppingList(startDate, endDate) {
     return apiCall(`/shopping/list?start_date=${startDate}&end_date=${endDate}`);
+}
+
+// Shopping List Items API
+async function apiCreateShoppingListFromRecipe(recipeId) {
+    return apiCall(`/shopping/items/from-recipe/${recipeId}`, {
+        method: 'POST'
+    });
+}
+
+async function apiGetShoppingListItems(recipeId = null) {
+    const url = recipeId 
+        ? `/shopping/items?recipe_id=${recipeId}`
+        : '/shopping/items';
+    return apiCall(url);
+}
+
+async function apiUpdateShoppingListItem(itemId, isPurchased) {
+    return apiCall(`/shopping/items/${itemId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_purchased: isPurchased })
+    });
+}
+
+async function apiDeleteShoppingListItem(itemId) {
+    return apiCall(`/shopping/items/${itemId}`, {
+        method: 'DELETE'
+    });
 }
 
 // AI APIs

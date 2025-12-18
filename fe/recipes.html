@@ -24,7 +24,6 @@
                     <li><a href="recipes.html" class="active"><span>📖</span> Công thức</a></li>
                     <li><a href="planner.html"><span>📅</span> Lịch ăn</a></li>
                     <li><a href="shopping.html"><span>🛒</span> Shopping List</a></li>
-                    <li><a href="ai-generator.html"><span>✨</span> AI Generator</a></li>
                     <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
                 </ul>
             </nav>
@@ -242,6 +241,7 @@
                 
                 // Tính toán phân trang
                 totalPages = Math.ceil(recipes.length / RECIPES_PER_PAGE);
+                
                 displayCurrentPage();
                 updatePagination();
             } catch (error) {
@@ -250,7 +250,7 @@
             }
         }
 
-        function displayCurrentPage() {
+        async function displayCurrentPage() {
             const grid = document.getElementById('recipes-grid');
             
             if (!allRecipes || allRecipes.length === 0) {
@@ -264,16 +264,33 @@
             const endIndex = startIndex + RECIPES_PER_PAGE;
             const recipesToShow = allRecipes.slice(startIndex, endIndex);
             
-            displayRecipes(recipesToShow);
+            // Load đánh giá của user cho các recipes đang hiển thị
+            await loadMyRatingsForRecipes(recipesToShow);
+            
+            renderRecipeCards(recipesToShow);
         }
 
-        function displayRecipes(recipes) {
+
+        // Map lưu đánh giá của user cho từng recipe
+        const myRatingsMap = {};
+
+        async function loadMyRatingsForRecipes(recipes) {
+            // Load đánh giá của user cho tất cả recipes
+            const promises = recipes.map(async (recipe) => {
+                try {
+                    const rating = await apiGetMyRating(recipe.id);
+                    if (rating) {
+                        myRatingsMap[recipe.id] = rating;
+                    }
+                } catch (error) {
+                    // User chưa đánh giá, không sao
+                }
+            });
+            await Promise.all(promises);
+        }
+
+        function renderRecipeCards(recipes) {
             const grid = document.getElementById('recipes-grid');
-            
-            if (!recipes || recipes.length === 0) {
-                grid.innerHTML = '<div class="loading">Không tìm thấy công thức nào</div>';
-                return;
-            }
             
             grid.innerHTML = recipes.map(recipe => {
                 // Extract category from tags
@@ -282,9 +299,16 @@
                 const avgRating = recipe.average_rating || 0;
                 const stars = '⭐'.repeat(Math.round(avgRating));
                 
+                // Kiểm tra user đã đánh giá chưa
+                const hasMyRating = myRatingsMap[recipe.id];
+                const myRatingBadge = hasMyRating 
+                    ? `<div class="my-rating-badge" title="Bạn đã đánh giá ${hasMyRating.stars} sao">✅ Đã đánh giá</div>`
+                    : '';
+                
                 return `
-                    <div class="recipe-card" onclick="showRecipeDetail(${recipe.id})">
+                    <div class="recipe-card" onclick="showRecipeDetail(${recipe.id})" title="Click để xem chi tiết và đánh giá">
                         <div class="recipe-image">${icon}</div>
+                        ${myRatingBadge}
                         <div class="recipe-body">
                             <div class="recipe-title">${recipe.name}</div>
                             <div class="recipe-meta">
@@ -297,6 +321,9 @@
                                 ${recipe.tags ? recipe.tags.split(',').slice(1).map(tag => 
                                     `<span class="tag">${tag.trim()}</span>`
                                 ).join('') : ''}
+                            </div>
+                            <div class="recipe-hint" style="margin-top: 8px; font-size: 12px; color: #666; font-style: italic;">
+                                👆 Click để xem chi tiết và đánh giá
                             </div>
                         </div>
                     </div>
@@ -333,19 +360,19 @@
             nextBtn.disabled = currentPage === totalPages;
         }
 
-        function prevPage() {
+        async function prevPage() {
             if (currentPage > 1) {
                 currentPage--;
-                displayCurrentPage();
+                await displayCurrentPage();
                 updatePagination();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
-        function nextPage() {
+        async function nextPage() {
             if (currentPage < totalPages) {
                 currentPage++;
-                displayCurrentPage();
+                await displayCurrentPage();
                 updatePagination();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
@@ -357,6 +384,22 @@
                 const recipe = await apiGetRecipe(id);
                 currentRecipe = recipe;
                 
+                // Load đánh giá của user hiện tại và tất cả đánh giá
+                let myRating = null;
+                let allRatings = [];
+                
+                try {
+                    myRating = await apiGetMyRating(id);
+                } catch (error) {
+                    // User chưa đánh giá, không sao
+                }
+                
+                try {
+                    allRatings = await apiGetRecipeRatings(id);
+                } catch (error) {
+                    // Không load được đánh giá, không sao
+                }
+                
                 const modal = document.getElementById('detail-modal');
                 document.getElementById('detail-name').textContent = recipe.name;
                 
@@ -365,6 +408,46 @@
                 
                 // Extract category from tags (first tag)
                 const category = recipe.tags ? recipe.tags.split(',')[0] : 'Lunch';
+                
+                // Format đánh giá của user hiện tại
+                let myRatingHtml = '';
+                if (myRating) {
+                    const myStars = '⭐'.repeat(myRating.stars);
+                    myRatingHtml = `
+                        <div class="my-rating" style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h4 style="margin: 0 0 10px 0; color: #2e7d32;">⭐ Đánh giá của bạn:</h4>
+                            <div style="font-size: 18px; margin-bottom: 8px;">${myStars} ${myRating.stars}/5</div>
+                            ${myRating.comment ? `<p style="margin: 8px 0 0 0; color: #555;">"${myRating.comment}"</p>` : ''}
+                            <small style="color: #888;">Bạn có thể cập nhật đánh giá bên dưới</small>
+                        </div>
+                    `;
+                }
+                
+                // Format danh sách đánh giá của các user khác
+                const otherRatings = allRatings.filter(r => !myRating || r.id !== myRating.id);
+                let otherRatingsHtml = '';
+                if (otherRatings.length > 0) {
+                    otherRatingsHtml = `
+                        <div class="other-ratings" style="margin-top: 20px;">
+                            <h4 style="margin-bottom: 15px;">Đánh giá từ người dùng khác (${otherRatings.length}):</h4>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                ${otherRatings.map(rating => {
+                                    const ratingStars = '⭐'.repeat(rating.stars);
+                                    const date = new Date(rating.created_at).toLocaleDateString('vi-VN');
+                                    return `
+                                        <div style="border-bottom: 1px solid #eee; padding: 12px 0;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                                <div style="font-size: 16px;">${ratingStars} ${rating.stars}/5</div>
+                                                <small style="color: #888;">${date}</small>
+                                            </div>
+                                            ${rating.comment ? `<p style="margin: 5px 0 0 0; color: #555; font-size: 14px;">"${rating.comment}"</p>` : ''}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
                 
                 document.getElementById('detail-content').innerHTML = `
                     <div class="detail-section">
@@ -413,17 +496,19 @@
                     
                     <div class="detail-section">
                         <h3>Đánh giá ${recipe.average_rating ? `(${stars} ${avgRating.toFixed(1)})` : ''}</h3>
+                        ${myRatingHtml}
                         <div class="rating-form">
                             <select id="rating-stars">
-                                <option value="5">⭐⭐⭐⭐⭐ Tuyệt vời</option>
-                                <option value="4">⭐⭐⭐⭐ Rất tốt</option>
-                                <option value="3">⭐⭐⭐ Tốt</option>
-                                <option value="2">⭐⭐ Bình thường</option>
-                                <option value="1">⭐ Cần cải thiện</option>
+                                <option value="5" ${myRating && myRating.stars === 5 ? 'selected' : ''}>⭐⭐⭐⭐⭐ Tuyệt vời</option>
+                                <option value="4" ${myRating && myRating.stars === 4 ? 'selected' : ''}>⭐⭐⭐⭐ Rất tốt</option>
+                                <option value="3" ${myRating && myRating.stars === 3 ? 'selected' : ''}>⭐⭐⭐ Tốt</option>
+                                <option value="2" ${myRating && myRating.stars === 2 ? 'selected' : ''}>⭐⭐ Bình thường</option>
+                                <option value="1" ${myRating && myRating.stars === 1 ? 'selected' : ''}>⭐ Cần cải thiện</option>
                             </select>
-                            <textarea id="rating-comment" placeholder="Nhận xét của bạn..."></textarea>
-                            <button class="btn btn-primary" onclick="submitRating()">Gửi đánh giá</button>
+                            <textarea id="rating-comment" placeholder="Nhận xét của bạn...">${myRating ? (myRating.comment || '') : ''}</textarea>
+                            <button class="btn btn-primary" onclick="submitRating()">${myRating ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}</button>
                         </div>
+                        ${otherRatingsHtml}
                     </div>
                 `;
                 
@@ -446,14 +531,21 @@
                 const stars = parseInt(document.getElementById('rating-stars').value);
                 const comment = document.getElementById('rating-comment').value;
                 
-                await apiRateRecipe(currentRecipe.id, { 
+                const rating = await apiRateRecipe(currentRecipe.id, { 
                     stars: stars, 
                     comment: comment,
                     recipe_id: currentRecipe.id 
                 });
+                
+                // Cập nhật myRatingsMap
+                myRatingsMap[currentRecipe.id] = rating;
+                
                 showToast('Đánh giá thành công!', 'success');
                 closeDetailModal();
-                loadRecipes();
+                
+                // Reload recipes để hiển thị badge "Đã đánh giá"
+                const searchValue = document.getElementById('search-input').value;
+                await loadRecipes(searchValue);
             } catch (error) {
                 showToast('Lỗi gửi đánh giá: ' + error.message, 'error');
             }
@@ -651,11 +743,26 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             transition: all 0.3s;
             cursor: pointer;
+            position: relative;
         }
 
         .recipe-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .my-rating-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #4caf50;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
         .recipe-image {

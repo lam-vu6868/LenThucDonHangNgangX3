@@ -88,8 +88,10 @@ def update_user_profile(
     current_user: models.User = Depends(utils.get_current_user)
 ):
     """
-    Cập nhật thông tin profile của user (chiều cao, cân nặng, ngày sinh, giới tính)
+    Cập nhật thông tin profile của user (tên, chiều cao, cân nặng, ngày sinh, giới tính)
     """
+    if profile_update.full_name is not None:
+        current_user.full_name = profile_update.full_name
     if profile_update.height is not None:
         current_user.height = profile_update.height
     if profile_update.weight is not None:

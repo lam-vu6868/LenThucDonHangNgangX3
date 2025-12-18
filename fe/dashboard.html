@@ -13,7 +13,7 @@
             <div class="sidebar-header">
                 <h2>🍽️ Meal Planner</h2>
                 <div class="user-info">
-                    <p><strong id="user-email">user@example.com</strong></p>
+                    <p><strong id="user-name">Người dùng</strong></p>
                     <p id="user-height">Chiều cao: N/A</p>
                     <p id="user-weight">Cân nặng: N/A</p>
                 </div>
@@ -25,7 +25,6 @@
                     <li><a href="recipes.html"><span>📖</span> Công thức</a></li>
                     <li><a href="planner.html"><span>📅</span> Lịch ăn</a></li>
                     <li><a href="shopping.html"><span>🛒</span> Shopping List</a></li>
-                    <li><a href="ai-generator.html"><span>✨</span> AI Generator</a></li>
                     <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
                 </ul>
             </nav>
@@ -87,13 +86,9 @@
                             <span>📅</span>
                             <p>Lập kế hoạch</p>
                         </a>
-                        <a href="ai-generator.html" class="action-btn">
-                            <span>✨</span>
-                            <p>AI gợi ý món</p>
-                        </a>
                         <a href="shopping.html" class="action-btn">
                             <span>🛒</span>
-                            <p>Tạo shopping list</p>
+                            <p>shopping list</p>
                         </a>
                     </div>
                 </div>
@@ -118,6 +113,11 @@
             </div>
             
             <form id="profile-form" onsubmit="updateProfile(event)">
+                <div class="form-group">
+                    <label>Tên đăng nhập: *</label>
+                    <input type="text" id="profile-full-name" class="form-control" placeholder="Nhập tên của bạn" required>
+                </div>
+                
                 <div class="form-row">
                     <div class="form-group">
                         <label>Chiều cao (cm) *</label>
@@ -179,7 +179,7 @@
             try {
                 // Get current user info
                 const userInfo = await apiGetCurrentUser();
-                document.getElementById('user-email').textContent = userInfo.email;
+                document.getElementById('user-name').textContent = userInfo.full_name || userInfo.email || 'Người dùng';
                 document.getElementById('user-height').textContent = `Chiều cao: ${userInfo.height || 'N/A'} cm`;
                 document.getElementById('user-weight').textContent = `Cân nặng: ${userInfo.weight || 'N/A'} kg`;
                 
@@ -199,16 +199,19 @@
                 const week = getCurrentWeek();
 
                 // Load stats
-                const [recipes, plans, shopping] = await Promise.all([
+                const [recipes, plans, shoppingItems] = await Promise.all([
                     apiGetRecipes(),
                     apiGetMealPlans(week.start, week.end),
-                    apiGetShoppingList(week.start, week.end)
+                    apiGetShoppingListItems().catch(() => []) // Load shopping list items từ database
                 ]);
 
                 // Update stats
                 document.getElementById('recipe-count').textContent = recipes.length || 0;
                 document.getElementById('plan-count').textContent = plans.length || 0;
-                document.getElementById('shopping-items').textContent = shopping.ingredients?.length || 0;
+                
+                // Đếm số nguyên liệu chưa mua
+                const unpurchasedItems = shoppingItems.filter(item => !item.is_purchased);
+                document.getElementById('shopping-items').textContent = unpurchasedItems.length || 0;
 
                 // Display recent meals
                 displayRecentMeals(plans);
@@ -255,6 +258,7 @@
             
             // Load current data if exists
             apiGetCurrentUser().then(user => {
+                if (user.full_name) document.getElementById('profile-full-name').value = user.full_name;
                 if (user.height) document.getElementById('profile-height').value = user.height;
                 if (user.weight) document.getElementById('profile-weight').value = user.weight;
                 if (user.date_of_birth) document.getElementById('profile-dob').value = user.date_of_birth;
@@ -272,6 +276,7 @@
             
             try {
                 const profileData = {
+                    full_name: document.getElementById('profile-full-name').value.trim(),
                     height: parseFloat(document.getElementById('profile-height').value),
                     weight: parseFloat(document.getElementById('profile-weight').value),
                     date_of_birth: document.getElementById('profile-dob').value,
@@ -279,19 +284,11 @@
                     dietary_preferences: document.getElementById('profile-diet').value || null
                 };
                 
-                const response = await fetch(`${API_BASE_URL}/auth/me`, {
+                // Use apiCall helper function
+                const updatedUser = await apiCall('/auth/me', {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
-                    },
                     body: JSON.stringify(profileData)
                 });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Lỗi cập nhật thông tin');
-                }
                 
                 showToast('✅ Đã cập nhật thông tin!', 'success');
                 closeProfileModal();
