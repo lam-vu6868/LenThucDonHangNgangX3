@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Meal Planner</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+    <style>
+        .admin-container {
+            padding: 20px;
+        }
+
+        .admin-header {
+            margin-bottom: 30px;
+        }
+
+        .admin-header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .admin-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .admin-tab:hover {
+            color: #3498db;
+        }
+
+        .admin-tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+            font-weight: bold;
+        }
+
+        .admin-content {
+            display: none;
+        }
+
+        .admin-content.active {
+            display: block;
+        }
+
+        .stats-grid-admin {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card-admin {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card-admin .stat-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .stat-card-admin h3 {
+            font-size: 32px;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+
+        .stat-card-admin p {
+            color: #7f8c8d;
+            margin: 0;
+        }
+
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #3498db;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .data-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-admin {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .badge-user {
+            background: #3498db;
+            color: white;
+        }
+
+        .badge-active {
+            background: #27ae60;
+            color: white;
+        }
+
+        .badge-inactive {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 0 2px;
+            transition: all 0.3s;
+        }
+
+        .btn-edit {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #2980b9;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        .btn-toggle {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-toggle:hover {
+            background: #d68910;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            max-width: 400px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <!-- Sidebar will be loaded by sidebar.js -->
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="container admin-container">
+                <div class="admin-header">
+                    <h1>🔐 Admin Panel</h1>
+                    <p>Quản lý hệ thống Meal Planner</p>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="stats-grid-admin" id="stats-grid">
+                    <div class="stat-card-admin">
+                        <div class="stat-icon">👥</div>
+                        <h3 id="stat-users">0</h3>
+                        <p>Tổng Users</p>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon">📖</div>
+                        <h3 id="stat-recipes">0</h3>
+                        <p>Tổng Recipes</p>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon">📅</div>
+                        <h3 id="stat-meal-plans">0</h3>
+                        <p>Tổng Meal Plans</p>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon">⭐</div>
+                        <h3 id="stat-ratings">0</h3>
+                        <p>Tổng Ratings</p>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon">✅</div>
+                        <h3 id="stat-active-users">0</h3>
+                        <p>Users Hoạt động</p>
+                    </div>
+                    <div class="stat-card-admin">
+                        <div class="stat-icon">👑</div>
+                        <h3 id="stat-admins">0</h3>
+                        <p>Admins</p>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="admin-tabs">
+                    <button class="admin-tab active" onclick="switchTab('users')">👥 Users</button>
+                    <button class="admin-tab" onclick="switchTab('recipes')">📖 Recipes</button>
+                    <button class="admin-tab" onclick="switchTab('meal-plans')">📅 Meal Plans</button>
+                    <button class="admin-tab" onclick="switchTab('ratings')">⭐ Ratings</button>
+                </div>
+
+                <!-- Users Tab -->
+                <div id="tab-users" class="admin-content active">
+                    <div class="search-box">
+                        <input type="text" id="search-users" placeholder="🔍 Tìm kiếm users..." onkeyup="filterUsers()">
+                    </div>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Email</th>
+                                    <th>Tên</th>
+                                    <th>Role</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <tr>
+                                    <td colspan="6" class="empty-state">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recipes Tab -->
+                <div id="tab-recipes" class="admin-content">
+                    <div class="search-box">
+                        <input type="text" id="search-recipes" placeholder="🔍 Tìm kiếm recipes..." onkeyup="filterRecipes()">
+                    </div>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tên món</th>
+                                    <th>Owner</th>
+                                    <th>Tags</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recipes-table-body">
+                                <tr>
+                                    <td colspan="5" class="empty-state">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Meal Plans Tab -->
+                <div id="tab-meal-plans" class="admin-content">
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Ngày</th>
+                                    <th>Loại bữa</th>
+                                    <th>Món ăn</th>
+                                    <th>Owner</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="meal-plans-table-body">
+                                <tr>
+                                    <td colspan="6" class="empty-state">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Ratings Tab -->
+                <div id="tab-ratings" class="admin-content">
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>User</th>
+                                    <th>Recipe</th>
+                                    <th>Sao</th>
+                                    <th>Comment</th>
+                                    <th>Ngày</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ratings-table-body">
+                                <tr>
+                                    <td colspan="7" class="empty-state">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Chỉnh sửa User</h2>
+                <button class="close-modal" onclick="closeEditUserModal()">&times;</button>
+            </div>
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-group">
+                    <label>Role:</label>
+                    <select id="edit-user-role">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Trạng thái:</label>
+                    <select id="edit-user-active">
+                        <option value="true">Hoạt động</option>
+                        <option value="false">Vô hiệu hóa</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Lưu</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeEditUserModal()" style="flex: 1;">Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/sidebar.js"></script>
+    <script>
+        checkAuth();
+        setupPageReloadOnResume(); // Tự động reload khi đổi user
+        
+        // Kiểm tra quyền admin
+        async function checkAdminAccess() {
+            try {
+                const user = await apiGetCurrentUser();
+                if (user.role !== 'admin') {
+                    alert('Bạn không có quyền truy cập trang admin!');
+                    window.location.href = 'dashboard.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                console.error('Error checking admin access:', error);
+                window.location.href = 'index.html';
+                return false;
+            }
+        }
+
+        // Render sidebar
+        async function initAdmin() {
+            const hasAccess = await checkAdminAccess();
+            if (!hasAccess) return;
+            
+            await renderSidebar('admin');
+            await loadStats();
+            await loadUsers();
+        }
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const stats = await apiGetAdminStats();
+                document.getElementById('stat-users').textContent = stats.total_users;
+                document.getElementById('stat-recipes').textContent = stats.total_recipes;
+                document.getElementById('stat-meal-plans').textContent = stats.total_meal_plans;
+                document.getElementById('stat-ratings').textContent = stats.total_ratings;
+                document.getElementById('stat-active-users').textContent = stats.active_users;
+                document.getElementById('stat-admins').textContent = stats.admin_users;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                showToast('Lỗi tải thống kê: ' + error.message, 'error');
+            }
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.admin-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.admin-content').forEach(content => content.classList.remove('active'));
+            
+            // Show selected tab
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // Load data for the tab
+            if (tabName === 'users') loadUsers();
+            else if (tabName === 'recipes') loadRecipes();
+            else if (tabName === 'meal-plans') loadMealPlans();
+            else if (tabName === 'ratings') loadRatings();
+        }
+
+        // Users management
+        let allUsers = [];
+        async function loadUsers() {
+            try {
+                allUsers = await apiGetAllUsers();
+                renderUsers(allUsers);
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showToast('Lỗi tải users: ' + error.message, 'error');
+                document.getElementById('users-table-body').innerHTML = 
+                    '<tr><td colspan="6" class="empty-state">Lỗi tải dữ liệu</td></tr>';
+            }
+        }
+
+        function renderUsers(users) {
+            const tbody = document.getElementById('users-table-body');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Không có users nào</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.id}</td>
+                    <td>${user.email}</td>
+                    <td>${user.full_name || 'N/A'}</td>
+                    <td><span class="badge ${user.role === 'admin' ? 'badge-admin' : 'badge-user'}">${user.role}</span></td>
+                    <td><span class="badge ${user.is_active ? 'badge-active' : 'badge-inactive'}">${user.is_active ? 'Hoạt động' : 'Vô hiệu'}</span></td>
+                    <td>
+                        <button class="btn-action btn-edit" onclick="editUser(${user.id})">Sửa</button>
+                        <button class="btn-action btn-delete" onclick="deleteUser(${user.id})" ${user.role === 'admin' ? 'disabled' : ''}>Xóa</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterUsers() {
+            const query = document.getElementById('search-users').value.toLowerCase();
+            const filtered = allUsers.filter(user => 
+                user.email.toLowerCase().includes(query) ||
+                (user.full_name && user.full_name.toLowerCase().includes(query))
+            );
+            renderUsers(filtered);
+        }
+
+        function editUser(userId) {
+            const user = allUsers.find(u => u.id === userId);
+            if (!user) return;
+            
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-user-role').value = user.role;
+            document.getElementById('edit-user-active').value = user.is_active.toString();
+            document.getElementById('edit-user-modal').style.display = 'block';
+        }
+
+        function closeEditUserModal() {
+            document.getElementById('edit-user-modal').style.display = 'none';
+        }
+
+        document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('edit-user-id').value;
+            const role = document.getElementById('edit-user-role').value;
+            const isActive = document.getElementById('edit-user-active').value === 'true';
+            
+            try {
+                await apiUpdateUser(userId, { role, is_active: isActive });
+                showToast('Cập nhật user thành công!', 'success');
+                closeEditUserModal();
+                await loadUsers();
+                await loadStats();
+            } catch (error) {
+                showToast('Lỗi cập nhật user: ' + error.message, 'error');
+            }
+        });
+
+        async function deleteUser(userId) {
+            if (!confirm('Bạn có chắc muốn xóa user này?')) return;
+            
+            try {
+                await apiDeleteUser(userId);
+                showToast('Xóa user thành công!', 'success');
+                await loadUsers();
+                await loadStats();
+            } catch (error) {
+                showToast('Lỗi xóa user: ' + error.message, 'error');
+            }
+        }
+
+        // Recipes management
+        let allRecipes = [];
+        async function loadRecipes() {
+            try {
+                allRecipes = await apiGetAllRecipes();
+                renderRecipes(allRecipes);
+            } catch (error) {
+                console.error('Error loading recipes:', error);
+                showToast('Lỗi tải recipes: ' + error.message, 'error');
+                document.getElementById('recipes-table-body').innerHTML = 
+                    '<tr><td colspan="5" class="empty-state">Lỗi tải dữ liệu</td></tr>';
+            }
+        }
+
+        function renderRecipes(recipes) {
+            const tbody = document.getElementById('recipes-table-body');
+            if (!recipes || recipes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Không có recipes nào</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = recipes.map(recipe => `
+                <tr>
+                    <td>${recipe.id}</td>
+                    <td>${recipe.name}</td>
+                    <td>${recipe.owner_id || 'System'}</td>
+                    <td>${recipe.tags || 'N/A'}</td>
+                    <td>
+                        <button class="btn-action btn-delete" onclick="deleteRecipe(${recipe.id})">Xóa</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterRecipes() {
+            const query = document.getElementById('search-recipes').value.toLowerCase();
+            const filtered = allRecipes.filter(recipe => 
+                recipe.name.toLowerCase().includes(query)
+            );
+            renderRecipes(filtered);
+        }
+
+        async function deleteRecipe(recipeId) {
+            if (!confirm('Bạn có chắc muốn xóa recipe này?')) return;
+            
+            try {
+                await apiDeleteRecipeAdmin(recipeId);
+                showToast('Xóa recipe thành công!', 'success');
+                await loadRecipes();
+                await loadStats();
+            } catch (error) {
+                showToast('Lỗi xóa recipe: ' + error.message, 'error');
+            }
+        }
+
+        // Meal Plans management
+        async function loadMealPlans() {
+            try {
+                const plans = await apiGetAllMealPlans();
+                renderMealPlans(plans);
+            } catch (error) {
+                console.error('Error loading meal plans:', error);
+                showToast('Lỗi tải meal plans: ' + error.message, 'error');
+                document.getElementById('meal-plans-table-body').innerHTML = 
+                    '<tr><td colspan="6" class="empty-state">Lỗi tải dữ liệu</td></tr>';
+            }
+        }
+
+        function renderMealPlans(plans) {
+            const tbody = document.getElementById('meal-plans-table-body');
+            if (!plans || plans.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Không có meal plans nào</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = plans.map(plan => `
+                <tr>
+                    <td>${plan.id}</td>
+                    <td>${plan.date}</td>
+                    <td>${plan.meal_type}</td>
+                    <td>${plan.recipe?.name || 'N/A'}</td>
+                    <td>${plan.owner_id}</td>
+                    <td>
+                        <button class="btn-action btn-delete" onclick="deleteMealPlan(${plan.id})">Xóa</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function deleteMealPlan(planId) {
+            if (!confirm('Bạn có chắc muốn xóa meal plan này?')) return;
+            
+            try {
+                await apiDeleteMealPlanAdmin(planId);
+                showToast('Xóa meal plan thành công!', 'success');
+                await loadMealPlans();
+                await loadStats();
+            } catch (error) {
+                showToast('Lỗi xóa meal plan: ' + error.message, 'error');
+            }
+        }
+
+        // Ratings management
+        async function loadRatings() {
+            try {
+                const ratings = await apiGetAllRatings();
+                renderRatings(ratings);
+            } catch (error) {
+                console.error('Error loading ratings:', error);
+                const errorMsg = error.message || 'Lỗi không xác định';
+                
+                // Kiểm tra nếu là lỗi network
+                if (errorMsg.includes('Failed to fetch') || errorMsg.includes('không thể kết nối')) {
+                    showToast('Không thể kết nối đến server. Vui lòng kiểm tra backend có đang chạy không.', 'error');
+                } else if (errorMsg.includes('403') || errorMsg.includes('Chỉ admin')) {
+                    showToast('Bạn không có quyền truy cập. Vui lòng đăng nhập lại với tài khoản admin.', 'error');
+                } else {
+                    showToast('Lỗi tải ratings: ' + errorMsg, 'error');
+                }
+                
+                document.getElementById('ratings-table-body').innerHTML = 
+                    `<tr><td colspan="7" class="empty-state">Lỗi: ${errorMsg}</td></tr>`;
+            }
+        }
+
+        function renderRatings(ratings) {
+            const tbody = document.getElementById('ratings-table-body');
+            if (!ratings || ratings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Không có ratings nào</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = ratings.map(rating => `
+                <tr>
+                    <td>${rating.id}</td>
+                    <td>${rating.user_id}</td>
+                    <td>${rating.recipe_id}</td>
+                    <td>${'⭐'.repeat(rating.stars)}</td>
+                    <td>${rating.comment || 'N/A'}</td>
+                    <td>${new Date(rating.created_at).toLocaleDateString('vi-VN')}</td>
+                    <td>
+                        <button class="btn-action btn-delete" onclick="deleteRating(${rating.id})">Xóa</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function deleteRating(ratingId) {
+            if (!confirm('Bạn có chắc muốn xóa rating này?')) return;
+            
+            try {
+                await apiDeleteRatingAdmin(ratingId);
+                showToast('Xóa rating thành công!', 'success');
+                await loadRatings();
+                await loadStats();
+            } catch (error) {
+                showToast('Lỗi xóa rating: ' + error.message, 'error');
+            }
+        }
+
+        // Initialize
+        initAdmin();
+    </script>
+</body>
+</html>
+

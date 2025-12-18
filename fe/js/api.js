@@ -6,6 +6,8 @@ async function apiCall(endpoint, options = {}) {
     const token = localStorage.getItem('token');
     const headers = {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
         ...options.headers
     };
 
@@ -13,12 +15,33 @@ async function apiCall(endpoint, options = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
-        ...options,
-        headers
-    });
+    let response;
+    try {
+        response = await fetch(`${API_URL}${endpoint}`, {
+            ...options,
+            headers,
+            cache: 'no-store'
+        });
+    } catch (error) {
+        // Network error hoặc CORS error
+        throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc đảm bảo backend đang chạy.');
+    }
 
-    const data = await response.json();
+    // Kiểm tra content-type trước khi parse JSON
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+        try {
+            data = await response.json();
+        } catch (error) {
+            throw new Error('Lỗi khi đọc dữ liệu từ server');
+        }
+    } else {
+        // Nếu không phải JSON, lấy text
+        const text = await response.text();
+        throw new Error(text || `HTTP ${response.status}: ${response.statusText}`);
+    }
 
     if (!response.ok) {
         // Nếu token hết hạn hoặc không hợp lệ, tự động logout
@@ -29,7 +52,7 @@ async function apiCall(endpoint, options = {}) {
             window.location.href = 'index.html';
             return;
         }
-        throw new Error(data.detail || 'API Error');
+        throw new Error(data.detail || `HTTP ${response.status}: ${response.statusText}`);
     }
 
     return data;
@@ -200,5 +223,61 @@ async function apiSearchRecipes(query) {
     return apiCall('/ai/search-recipes', {
         method: 'POST',
         body: JSON.stringify({ query })
+    });
+}
+
+// Admin APIs
+async function apiGetAdminStats() {
+    return apiCall('/admin/stats');
+}
+
+async function apiGetAllUsers(skip = 0, limit = 100) {
+    return apiCall(`/admin/users?skip=${skip}&limit=${limit}`);
+}
+
+async function apiGetUser(userId) {
+    return apiCall(`/admin/users/${userId}`);
+}
+
+async function apiUpdateUser(userId, data) {
+    return apiCall(`/admin/users/${userId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    });
+}
+
+async function apiDeleteUser(userId) {
+    return apiCall(`/admin/users/${userId}`, {
+        method: 'DELETE'
+    });
+}
+
+async function apiGetAllRecipes(skip = 0, limit = 100) {
+    return apiCall(`/admin/recipes?skip=${skip}&limit=${limit}`);
+}
+
+async function apiDeleteRecipeAdmin(recipeId) {
+    return apiCall(`/admin/recipes/${recipeId}`, {
+        method: 'DELETE'
+    });
+}
+
+async function apiGetAllMealPlans(skip = 0, limit = 100) {
+    return apiCall(`/admin/meal-plans?skip=${skip}&limit=${limit}`);
+}
+
+async function apiDeleteMealPlanAdmin(planId) {
+    return apiCall(`/admin/meal-plans/${planId}`, {
+        method: 'DELETE'
+    });
+}
+
+async function apiGetAllRatings(skip = 0, limit = 100) {
+    return apiCall(`/admin/ratings?skip=${skip}&limit=${limit}`);
+}
+
+async function apiDeleteRatingAdmin(ratingId) {
+    return apiCall(`/admin/ratings/${ratingId}`, {
+        method: 'DELETE'
     });
 }

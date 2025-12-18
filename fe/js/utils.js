@@ -10,11 +10,55 @@ function checkAuth() {
     return true;
 }
 
+// Kiểm tra và xử lý khi trang được load từ bfcache (back/forward cache)
+// Điều này đảm bảo dữ liệu được load lại khi user đổi tài khoản
+function setupPageReloadOnResume(reloadCallback) {
+    // Lưu session ID khi trang được load lần đầu
+    const currentSessionId = localStorage.getItem('session_id') || '';
+    const pageLoadSessionId = currentSessionId;
+    
+    // Kiểm tra khi trang được hiện lại (từ bfcache hoặc tab switch)
+    window.addEventListener('pageshow', function(event) {
+        // Nếu trang được load từ bfcache
+        if (event.persisted) {
+            const newSessionId = localStorage.getItem('session_id') || '';
+            // Nếu session ID khác, nghĩa là đã login user khác
+            if (newSessionId !== pageLoadSessionId) {
+                window.location.reload();
+            }
+        }
+    });
+    
+    // Kiểm tra khi tab được focus lại
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            const newSessionId = localStorage.getItem('session_id') || '';
+            const token = localStorage.getItem('token');
+            
+            // Nếu không còn token, redirect về login
+            if (!token) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Nếu session ID khác, reload trang để load dữ liệu mới
+            if (newSessionId !== pageLoadSessionId) {
+                window.location.reload();
+            }
+        }
+    });
+}
+
 // Logout function
 function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user_email');
-    window.location.href = 'index.html';
+    // Clear tất cả localStorage để tránh dữ liệu bị lẫn giữa các user
+    localStorage.clear();
+    
+    // Clear sessionStorage nếu có
+    sessionStorage.clear();
+    
+    // Force reload trang login để clear cache
+    window.location.href = 'index.html?logout=' + Date.now();
 }
 
 // Format date

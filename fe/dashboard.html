@@ -8,27 +8,7 @@
 </head>
 <body>
     <div class="main-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>🍽️ Meal Planner</h2>
-                <div class="user-info">
-                    <p><strong id="user-name">Người dùng</strong></p>
-                    <p id="user-height">Chiều cao: N/A</p>
-                    <p id="user-weight">Cân nặng: N/A</p>
-                </div>
-            </div>
-            
-            <nav>
-                <ul class="nav-menu">
-                    <li><a href="dashboard.html" class="active"><span>🏠</span> Dashboard</a></li>
-                    <li><a href="recipes.html"><span>📖</span> Công thức</a></li>
-                    <li><a href="planner.html"><span>📅</span> Lịch ăn</a></li>
-                    <li><a href="shopping.html"><span>🛒</span> Shopping List</a></li>
-                    <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
-                </ul>
-            </nav>
-        </aside>
+        <!-- Sidebar will be loaded by sidebar.js -->
 
         <!-- Main Content -->
         <main class="main-content">
@@ -168,20 +148,36 @@
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/sidebar.js"></script>
     <script>
         // Check authentication
         if (!checkAuth()) {
             window.location.href = 'index.html';
         }
+        setupPageReloadOnResume(); // Tự động reload khi đổi user
+        
+        // Kiểm tra nếu là admin thì redirect về trang admin
+        async function checkUserRole() {
+            try {
+                const user = await apiGetCurrentUser();
+                if (user.role === 'admin') {
+                    window.location.href = 'admin.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking user role:', error);
+            }
+        }
+        checkUserRole();
+        
+        // Render sidebar chung
+        renderSidebar('dashboard').catch(console.error);
 
         // Load dashboard data
         async function loadDashboard() {
             try {
-                // Get current user info
+                // Get current user info (sidebar.js đã load user info vào sidebar, chỉ cần lấy để tính BMR)
                 const userInfo = await apiGetCurrentUser();
-                document.getElementById('user-name').textContent = userInfo.full_name || userInfo.email || 'Người dùng';
-                document.getElementById('user-height').textContent = `Chiều cao: ${userInfo.height || 'N/A'} cm`;
-                document.getElementById('user-weight').textContent = `Cân nặng: ${userInfo.weight || 'N/A'} kg`;
                 
                 // Calculate BMR if height and weight exist
                 if (userInfo.height && userInfo.weight && userInfo.gender && userInfo.date_of_birth) {

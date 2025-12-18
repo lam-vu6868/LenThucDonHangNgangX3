@@ -8,25 +8,7 @@
 </head>
 <body>
     <div class="main-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>🍽️ Meal Planner</h2>
-                <div class="user-info">
-                    <p><strong id="user-email">user@example.com</strong></p>
-                </div>
-            </div>
-            
-            <nav>
-                <ul class="nav-menu">
-                    <li><a href="dashboard.html"><span>🏠</span> Dashboard</a></li>
-                    <li><a href="recipes.html"><span>📖</span> Công thức</a></li>
-                    <li><a href="planner.html"><span>📅</span> Lịch ăn</a></li>
-                    <li><a href="shopping.html" class="active"><span>🛒</span> Shopping List</a></li>
-                    <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
-                </ul>
-            </nav>
-        </aside>
+        <!-- Sidebar will be loaded by sidebar.js -->
 
         <!-- Main Content -->
         <main class="main-content">
@@ -93,19 +75,27 @@
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/sidebar.js"></script>
     <script>
         checkAuth();
+        setupPageReloadOnResume(); // Tự động reload khi đổi user
         
-        // Load user info
-        async function loadUserInfo() {
+        // Kiểm tra nếu là admin thì redirect về trang admin
+        async function checkUserRole() {
             try {
-                const userInfo = await apiGetCurrentUser();
-                document.getElementById('user-email').textContent = userInfo.email;
+                const user = await apiGetCurrentUser();
+                if (user.role === 'admin') {
+                    window.location.href = 'admin.html';
+                    return;
+                }
             } catch (error) {
-                console.error('Error loading user:', error);
+                console.error('Error checking user role:', error);
             }
         }
-        loadUserInfo();
+        checkUserRole();
+        
+        // Render sidebar chung
+        renderSidebar('shopping').catch(console.error);
 
         let allRecipes = [];
         let filteredRecipes = [];

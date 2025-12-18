@@ -11,7 +11,7 @@ from app.database import engine
 from app import models 
 
 # 2. Import các Router (API)
-from app.routers import auth, recipes, plans, ai, shopping
+from app.routers import auth, recipes, plans, ai, shopping, admin
 
 load_dotenv()
 
@@ -53,6 +53,7 @@ app.include_router(recipes.router)    # CRUD Recipes + Ratings
 app.include_router(plans.router)      # Meal Plans (Calendar)
 app.include_router(ai.router)         # AI Assistant (Gemini)
 app.include_router(shopping.router)   # Shopping List
+app.include_router(admin.router)     # Admin Panel
 # -------------------------------
 
 @app.get("/")

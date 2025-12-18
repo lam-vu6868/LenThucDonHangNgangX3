@@ -131,9 +131,10 @@
                 showMessage('Đang đăng nhập...', 'info');
                 const response = await apiLogin(email, password);
                 
-                // Lưu token
+                // Lưu token và tạo session ID mới
                 localStorage.setItem('token', response.access_token);
                 localStorage.setItem('user_email', email);
+                localStorage.setItem('session_id', Date.now().toString() + Math.random().toString(36));
                 
                 showMessage('✅ Đăng nhập thành công! Đang chuyển trang...', 'success');
                 setTimeout(() => {
@@ -222,6 +223,15 @@
             msg.style.display = 'block';
         }
 
+        // Kiểm tra nếu đang logout thì clear hết localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('logout')) {
+            localStorage.clear();
+            sessionStorage.clear();
+            // Remove query string để URL sạch hơn
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
         // Check if already logged in
         if (localStorage.getItem('token')) {
             window.location.href = 'dashboard.html';
