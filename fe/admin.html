@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Admin Panel - Meal Planner</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/style.css?v=1">
+    <link rel="stylesheet" href="css/components.css?v=1">
     <style>
         .admin-container {
             padding: 20px;
@@ -447,10 +450,10 @@
         </div>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/sidebar.js"></script>
+    <script src="js/config.js?v=4"></script>
+    <script src="js/api.js?v=4"></script>
+    <script src="js/utils.js?v=4"></script>
+    <script src="js/sidebar.js?v=4"></script>
     <script>
         checkAuth();
         setupPageReloadOnResume(); // Tự động reload khi đổi user
@@ -600,7 +603,16 @@
                 await loadUsers();
                 await loadStats();
             } catch (error) {
-                showToast('Lỗi xóa user: ' + error.message, 'error');
+                // Hiển thị thông báo lỗi chi tiết hơn
+                let errorMessage = error.message || 'Không thể xóa user';
+                
+                // Nếu là lỗi về dữ liệu liên kết, hiển thị rõ ràng hơn
+                if (errorMessage.includes('dữ liệu liên kết') || errorMessage.includes('liên kết')) {
+                    // Thông báo đã đầy đủ từ backend, chỉ cần hiển thị
+                    showToast(errorMessage, 'error');
+                } else {
+                    showToast('Lỗi xóa user: ' + errorMessage, 'error');
+                }
             }
         }
 
@@ -685,7 +697,7 @@
                     <td>${plan.date}</td>
                     <td>${plan.meal_type}</td>
                     <td>${plan.recipe?.name || 'N/A'}</td>
-                    <td>${plan.owner_id}</td>
+                    <td>${plan.owner?.full_name || plan.owner?.email || plan.owner_id || 'N/A'}</td>
                     <td>
                         <button class="btn-action btn-delete" onclick="deleteMealPlan(${plan.id})">Xóa</button>
                     </td>
@@ -739,8 +751,8 @@
             tbody.innerHTML = ratings.map(rating => `
                 <tr>
                     <td>${rating.id}</td>
-                    <td>${rating.user_id}</td>
-                    <td>${rating.recipe_id}</td>
+                    <td>${rating.user?.full_name || rating.user?.email || rating.user_id || 'N/A'}</td>
+                    <td>${rating.recipe?.name || rating.recipe_id || 'N/A'}</td>
                     <td>${'⭐'.repeat(rating.stars)}</td>
                     <td>${rating.comment || 'N/A'}</td>
                     <td>${new Date(rating.created_at).toLocaleDateString('vi-VN')}</td>

@@ -10,23 +10,82 @@ router = APIRouter(
     tags=["Recipes"]
 )
 
-# --- 1. LẤY TẤT CẢ CÔNG THỨC (Public + của user) ---
+# --- 1. LẤY CÔNG THỨC (Của tôi hoặc tất cả) ---
 @router.get("/", response_model=List[schemas.Recipe])
 def get_recipes(
     skip: int = 0,
-    limit: int = 50,
+    limit: int = 100,
     search: str = "",
     tags: str = "",
-    db: Session = Depends(get_db)
+    my_only: bool = False,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
 ):
     """
-    Lấy danh sách công thức món ăn
+    Lấy công thức món ăn
+    - skip: Bỏ qua bao nhiêu bản ghi
+    - limit: Giới hạn số lượng trả về
+    - search: Tìm kiếm theo tên món
+    - tags: Lọc theo tags (VD: "Breakfast,Low-Carb")
+    - my_only: Nếu True, chỉ lấy recipes của user hiện tại. Nếu False, lấy tất cả (của user + công khai)
+    """
+    from sqlalchemy import or_
+    
+    if my_only:
+        # Chỉ lấy recipes của user hiện tại
+        query = db.query(models.Recipe).filter(models.Recipe.owner_id == current_user.id)
+    else:
+        # Lấy recipes của user HOẶC recipes công khai (owner_id = NULL)
+        query = db.query(models.Recipe).filter(
+            or_(
+                models.Recipe.owner_id == current_user.id,
+                models.Recipe.owner_id.is_(None)
+            )
+        )
+    
+    if search:
+        query = query.filter(models.Recipe.name.ilike(f"%{search}%"))
+    
+    if tags:
+        query = query.filter(models.Recipe.tags.ilike(f"%{tags}%"))
+    
+    recipes = query.offset(skip).limit(limit).all()
+    return recipes
+
+# --- 1b. LẤY TẤT CẢ CÁC MÓN ĂN ĐÃ ĐƯỢC ĐÁNH GIÁ (BỞI BẤT KỲ USER NÀO) ---
+@router.get("/rated", response_model=List[schemas.Recipe])
+def get_rated_recipes(
+    skip: int = 0,
+    limit: int = 100,
+    search: str = "",
+    tags: str = "",
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Lấy TẤT CẢ các món ăn đã được đánh giá (bởi bất kỳ user nào)
     - skip: Bỏ qua bao nhiêu bản ghi
     - limit: Giới hạn số lượng trả về
     - search: Tìm kiếm theo tên món
     - tags: Lọc theo tags (VD: "Breakfast,Low-Carb")
     """
-    query = db.query(models.Recipe)
+    from sqlalchemy import distinct
+    
+    # Lấy các recipe_id đã có rating (bởi bất kỳ user nào)
+    rated_recipe_ids = db.query(distinct(models.Rating.recipe_id)).filter(
+        models.Rating.recipe_id.isnot(None)
+    ).all()
+    
+    # Extract recipe IDs từ kết quả
+    recipe_ids = [r[0] for r in rated_recipe_ids] if rated_recipe_ids else []
+    
+    if not recipe_ids:
+        return []
+    
+    # Query recipes đã được đánh giá
+    query = db.query(models.Recipe).filter(
+        models.Recipe.id.in_(recipe_ids)
+    )
     
     if search:
         query = query.filter(models.Recipe.name.ilike(f"%{search}%"))
@@ -192,8 +251,12 @@ def rate_recipe(
 # --- 7. LẤY ĐÁNH GIÁ CỦA MÓN ĂN ---
 @router.get("/{recipe_id}/ratings", response_model=List[schemas.Rating])
 def get_recipe_ratings(recipe_id: int, db: Session = Depends(get_db)):
-    """Lấy tất cả đánh giá của món ăn"""
-    ratings = db.query(models.Rating).filter(models.Rating.recipe_id == recipe_id).all()
+    """Lấy tất cả đánh giá của món ăn (của tất cả users)"""
+    # Filter ra những rating có user_id hợp lệ (không null)
+    ratings = db.query(models.Rating).filter(
+        models.Rating.recipe_id == recipe_id,
+        models.Rating.user_id.isnot(None)
+    ).all()
     return ratings
 
 # --- 8. LẤY ĐÁNH GIÁ CỦA USER HIỆN TẠI CHO MÓN ĂN ---
@@ -213,3 +276,23 @@ def get_my_rating(
         raise HTTPException(status_code=404, detail="Bạn chưa đánh giá món ăn này")
     
     return rating
+
+# --- 9. XÓA ĐÁNH GIÁ CỦA USER HIỆN TẠI CHO MÓN ĂN ---
+@router.delete("/{recipe_id}/ratings/my")
+def delete_my_rating(
+    recipe_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Xóa đánh giá của user hiện tại cho món ăn"""
+    rating = db.query(models.Rating).filter(
+        models.Rating.recipe_id == recipe_id,
+        models.Rating.user_id == current_user.id
+    ).first()
+    
+    if not rating:
+        raise HTTPException(status_code=404, detail="Bạn chưa đánh giá món ăn này")
+    
+    db.delete(rating)
+    db.commit()
+    return {"message": "Đã xóa đánh giá của bạn"}

@@ -6,8 +6,6 @@ async function apiCall(endpoint, options = {}) {
     const token = localStorage.getItem('token');
     const headers = {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
         ...options.headers
     };
 
@@ -19,8 +17,7 @@ async function apiCall(endpoint, options = {}) {
     try {
         response = await fetch(`${API_URL}${endpoint}`, {
             ...options,
-            headers,
-            cache: 'no-store'
+            headers
         });
     } catch (error) {
         // Network error hoặc CORS error
@@ -97,6 +94,11 @@ async function apiGetRecipes(params = {}) {
     return apiCall(`/recipes/?${query}`);
 }
 
+async function apiGetRatedRecipes(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return apiCall(`/recipes/rated?${query}`);
+}
+
 async function apiGetRecipe(id) {
     return apiCall(`/recipes/${id}`);
 }
@@ -142,6 +144,12 @@ async function apiGetMyRating(id) {
 
 async function apiGetRecipeRatings(id) {
     return apiCall(`/recipes/${id}/ratings`);
+}
+
+async function apiDeleteMyRating(id) {
+    return apiCall(`/recipes/${id}/ratings/my`, {
+        method: 'DELETE'
+    });
 }
 
 // Meal Plan APIs

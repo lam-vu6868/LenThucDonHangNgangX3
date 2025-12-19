@@ -77,6 +77,10 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
+    
+    // Tính toán thời gian hiển thị dựa trên độ dài message (tối thiểu 3s, tối đa 10s)
+    const displayTime = Math.max(3000, Math.min(10000, message.length * 50));
+    
     toast.style.cssText = `
         position: fixed;
         top: 20px;
@@ -88,11 +92,14 @@ function showToast(message, type = 'info') {
         box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         z-index: 10000;
         animation: slideIn 0.3s;
+        max-width: 500px;
+        word-wrap: break-word;
+        line-height: 1.5;
     `;
     document.body.appendChild(toast);
     setTimeout(() => {
         toast.remove();
-    }, 3000);
+    }, displayTime);
 }
 
 // Loading indicator

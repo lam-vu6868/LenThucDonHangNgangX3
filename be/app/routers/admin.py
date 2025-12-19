@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc
 from typing import List, Optional
 from datetime import date, datetime
@@ -88,7 +88,7 @@ def delete_user(
     db: Session = Depends(get_db),
     admin: models.User = Depends(require_admin)
 ):
-    """Xóa user (chỉ xóa nếu không phải admin hiện tại)"""
+    """Xóa user (chỉ xóa nếu không phải admin hiện tại và không có dữ liệu liên kết)"""
     if user_id == admin.id:
         raise HTTPException(status_code=400, detail="Không thể xóa chính mình")
     
@@ -96,6 +96,38 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="User không tồn tại")
     
+    # Kiểm tra dữ liệu liên kết
+    related_data = []
+    
+    # Kiểm tra recipes
+    recipes_count = db.query(models.Recipe).filter(models.Recipe.owner_id == user_id).count()
+    if recipes_count > 0:
+        related_data.append(f"{recipes_count} công thức món ăn")
+    
+    # Kiểm tra meal plans
+    meal_plans_count = db.query(models.MealPlan).filter(models.MealPlan.owner_id == user_id).count()
+    if meal_plans_count > 0:
+        related_data.append(f"{meal_plans_count} lịch ăn")
+    
+    # Kiểm tra ratings
+    ratings_count = db.query(models.Rating).filter(models.Rating.user_id == user_id).count()
+    if ratings_count > 0:
+        related_data.append(f"{ratings_count} đánh giá")
+    
+    # Kiểm tra shopping list items
+    shopping_items_count = db.query(models.ShoppingListItem).filter(models.ShoppingListItem.user_id == user_id).count()
+    if shopping_items_count > 0:
+        related_data.append(f"{shopping_items_count} mục danh sách mua sắm")
+    
+    # Nếu có dữ liệu liên kết, không cho xóa
+    if related_data:
+        detail_msg = f"Không thể xóa user này vì đang có dữ liệu liên kết: {', '.join(related_data)}. Vui lòng xóa hoặc chuyển quyền sở hữu các dữ liệu này trước khi xóa user."
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=detail_msg
+        )
+    
+    # Nếu không có dữ liệu liên kết, cho phép xóa
     db.delete(user)
     db.commit()
     return {"message": "Đã xóa user thành công"}
@@ -136,7 +168,13 @@ def get_all_meal_plans(
     admin: models.User = Depends(require_admin)
 ):
     """Lấy danh sách tất cả meal plans"""
-    plans = db.query(models.MealPlan).offset(skip).limit(limit).all()
+    # Filter ra những meal plan có owner_id hợp lệ (không null)
+    plans = db.query(models.MealPlan).options(
+        joinedload(models.MealPlan.recipe),
+        joinedload(models.MealPlan.owner)
+    ).filter(
+        models.MealPlan.owner_id.isnot(None)
+    ).offset(skip).limit(limit).all()
     return plans
 
 @router.delete("/meal-plans/{plan_id}")
@@ -163,9 +201,14 @@ def get_all_ratings(
     admin: models.User = Depends(require_admin)
 ):
     """Lấy danh sách tất cả ratings"""
-    # Filter ra những rating có recipe_id hợp lệ (không null)
-    ratings = db.query(models.Rating).filter(
-        models.Rating.recipe_id.isnot(None)
+    # Filter ra những rating có recipe_id và user_id hợp lệ (không null)
+    # và eager load relationships
+    ratings = db.query(models.Rating).options(
+        joinedload(models.Rating.user),
+        joinedload(models.Rating.recipe)
+    ).filter(
+        models.Rating.recipe_id.isnot(None),
+        models.Rating.user_id.isnot(None)
     ).offset(skip).limit(limit).all()
     return ratings
 

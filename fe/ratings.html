@@ -6,7 +6,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>Công thức - Meal Planner</title>
+    <title>Đánh giá - Meal Planner</title>
     <link rel="stylesheet" href="css/style.css?v=1">
     <link rel="stylesheet" href="css/components.css?v=1">
 </head>
@@ -18,16 +18,16 @@
         <main class="main-content">
             <div class="container">
                 <div class="page-header">
-                    <h1>📖 Công thức của tôi</h1>
-                    <button class="btn btn-primary" onclick="showCreateModal()">➕ Thêm công thức</button>
+                    <h1>⭐ Đánh giá món ăn</h1>
+                    <p style="color: #666; margin-top: 10px;">Xem tất cả các món ăn đã được đánh giá</p>
                 </div>
 
                 <!-- Search & Filter -->
                 <div class="search-section">
-                    <input type="text" id="search-input" placeholder="🔍 Tìm kiếm công thức..." class="search-input">
+                    <input type="text" id="search-input" placeholder="🔍 Tìm kiếm món ăn..." class="search-input">
                     
                     <div class="filters">
-                        <select id="filter-category" onchange="loadRecipes()">
+                        <select id="filter-category" onchange="loadRatedRecipes()">
                             <option value="">Tất cả loại</option>
                             <option value="Breakfast">Sáng</option>
                             <option value="Lunch">Trưa</option>
@@ -52,110 +52,6 @@
         </main>
     </div>
 
-    <!-- Create/Edit Recipe Modal -->
-    <div id="recipe-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-title">Thêm công thức mới</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </div>
-            
-            <form id="recipe-form" onsubmit="saveRecipe(event)">
-                <div class="form-group">
-                    <label>Tên món ăn *</label>
-                    <input type="text" id="recipe-name" required>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Loại *</label>
-                        <select id="recipe-category" required>
-                            <option value="Breakfast">Sáng</option>
-                            <option value="Lunch">Trưa</option>
-                            <option value="Dinner">Tối</option>
-                            <option value="Snack">Snack</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Thời gian (phút) *</label>
-                        <input type="number" id="recipe-time" required min="1">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Khẩu phần (người) *</label>
-                        <input type="number" id="recipe-servings" value="1" required min="1">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Mô tả</label>
-                    <textarea id="recipe-description" rows="3"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label>Hướng dẫn *</label>
-                    <textarea id="recipe-instructions" rows="5" required></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label>URL hình ảnh (tùy chọn)</label>
-                    <input type="url" id="recipe-image-url" placeholder="https://example.com/image.jpg">
-                </div>
-                
-                <div class="form-group">
-                    <label>Thông tin dinh dưỡng (mỗi phần)</label>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Calories (kcal)</label>
-                            <input type="number" id="recipe-calories" step="0.1" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Protein (g)</label>
-                            <input type="number" id="recipe-protein" step="0.1" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Carbs (g)</label>
-                            <input type="number" id="recipe-carbs" step="0.1" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Fat (g)</label>
-                            <input type="number" id="recipe-fat" step="0.1" min="0" value="0">
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Chế độ ăn</label>
-                    <div class="checkbox-group">
-                        <label><input type="checkbox" value="vegetarian"> Chay</label>
-                        <label><input type="checkbox" value="vegan"> Thuần chay</label>
-                        <label><input type="checkbox" value="gluten_free"> Không gluten</label>
-                        <label><input type="checkbox" value="halal"> Halal</label>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Nguyên liệu *</label>
-                    <div id="ingredients-list">
-                        <div class="ingredient-item">
-                            <input type="text" placeholder="Tên nguyên liệu" class="ing-name" required>
-                            <input type="number" placeholder="Số lượng" class="ing-amount" step="0.1" required>
-                            <input type="text" placeholder="Đơn vị" class="ing-unit" required>
-                            <button type="button" class="btn-remove" onclick="removeIngredient(this)">🗑️</button>
-                        </div>
-                    </div>
-                    <button type="button" class="btn btn-secondary" onclick="addIngredient()">➕ Thêm nguyên liệu</button>
-                </div>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Hủy</button>
-                    <button type="submit" class="btn btn-primary">💾 Lưu</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Recipe Detail Modal -->
     <div id="detail-modal" class="modal">
         <div class="modal-content modal-large">
@@ -170,20 +66,18 @@
             
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeDetailModal()">Đóng</button>
-                <button class="btn btn-primary" onclick="editRecipe()">✏️ Sửa</button>
-                <button class="btn btn-danger" onclick="deleteRecipe()">🗑️ Xóa</button>
             </div>
         </div>
     </div>
 
-    <script src="js/config.js?v=4"></script>
-    <script src="js/api.js?v=4"></script>
-    <script src="js/utils.js?v=4"></script>
-    <script src="js/sidebar.js?v=4"></script>
+    <script src="js/config.js?v=5"></script>
+    <script src="js/api.js?v=5"></script>
+    <script src="js/utils.js?v=5"></script>
+    <script src="js/sidebar.js?v=5"></script>
     <script>
-        // Recipe Management
+        // Ratings Page
         checkAuth();
-        setupPageReloadOnResume(); // Tự động reload khi đổi user
+        setupPageReloadOnResume();
         
         // Kiểm tra nếu là admin thì redirect về trang admin
         async function checkUserRole() {
@@ -200,7 +94,7 @@
         checkUserRole();
         
         // Render sidebar chung
-        renderSidebar('recipes').catch(console.error);
+        renderSidebar('ratings').catch(console.error);
 
         let currentRecipe = null;
         let allRecipes = [];
@@ -216,20 +110,20 @@
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 currentPage = 1; // Reset về trang 1
-                loadRecipes(e.target.value);
+                loadRatedRecipes(e.target.value);
             }, 500);
         });
 
-        // Load recipes
-        async function loadRecipes(search = '') {
+        // Load rated recipes
+        async function loadRatedRecipes(search = '') {
             try {
                 const category = document.getElementById('filter-category').value;
                 
-                const params = { my_only: true }; // Chỉ lấy recipes của user hiện tại
+                const params = {};
                 if (search) params.search = search;
                 if (category) params.tags = category;
                 
-                const recipes = await apiGetRecipes(params);
+                const recipes = await apiGetRatedRecipes(params);
                 allRecipes = recipes;
                 
                 // Tính toán phân trang
@@ -238,8 +132,8 @@
                 displayCurrentPage();
                 updatePagination();
             } catch (error) {
-                console.error('Error loading recipes:', error);
-                showToast('Lỗi tải công thức: ' + error.message, 'error');
+                console.error('Error loading rated recipes:', error);
+                showToast('Lỗi tải món ăn đã đánh giá: ' + error.message, 'error');
             }
         }
 
@@ -247,7 +141,7 @@
             const grid = document.getElementById('recipes-grid');
             
             if (!allRecipes || allRecipes.length === 0) {
-                grid.innerHTML = '<div class="loading">Không tìm thấy công thức nào</div>';
+                grid.innerHTML = '<div class="loading">Không tìm thấy món ăn nào đã được đánh giá</div>';
                 document.getElementById('pagination').style.display = 'none';
                 return;
             }
@@ -257,29 +151,7 @@
             const endIndex = startIndex + RECIPES_PER_PAGE;
             const recipesToShow = allRecipes.slice(startIndex, endIndex);
             
-            // Load đánh giá của user cho các recipes đang hiển thị
-            await loadMyRatingsForRecipes(recipesToShow);
-            
             renderRecipeCards(recipesToShow);
-        }
-
-
-        // Map lưu đánh giá của user cho từng recipe
-        const myRatingsMap = {};
-
-        async function loadMyRatingsForRecipes(recipes) {
-            // Load đánh giá của user cho tất cả recipes
-            const promises = recipes.map(async (recipe) => {
-                try {
-                    const rating = await apiGetMyRating(recipe.id);
-                    if (rating) {
-                        myRatingsMap[recipe.id] = rating;
-                    }
-                } catch (error) {
-                    // User chưa đánh giá, không sao
-                }
-            });
-            await Promise.all(promises);
         }
 
         function renderRecipeCards(recipes) {
@@ -292,16 +164,10 @@
                 const avgRating = recipe.average_rating || 0;
                 const stars = '⭐'.repeat(Math.round(avgRating));
                 
-                // Kiểm tra user đã đánh giá chưa
-                const hasMyRating = myRatingsMap[recipe.id];
-                const myRatingBadge = hasMyRating 
-                    ? `<div class="my-rating-badge" title="Bạn đã đánh giá ${hasMyRating.stars} sao">✅ Đã đánh giá</div>`
-                    : '';
-                
                 return `
                     <div class="recipe-card" onclick="showRecipeDetail(${recipe.id})" title="Click để xem chi tiết và đánh giá">
                         <div class="recipe-image">${icon}</div>
-                        ${myRatingBadge}
+                        <div class="rated-badge" title="Món ăn đã được đánh giá">⭐ Đã đánh giá</div>
                         <div class="recipe-body">
                             <div class="recipe-title">${recipe.name}</div>
                             <div class="recipe-meta">
@@ -416,21 +282,31 @@
                     `;
                 }
                 
-                // Format danh sách đánh giá của các user khác
-                const otherRatings = allRatings.filter(r => !myRating || r.id !== myRating.id);
-                let otherRatingsHtml = '';
-                if (otherRatings.length > 0) {
-                    otherRatingsHtml = `
-                        <div class="other-ratings" style="margin-top: 20px;">
-                            <h4 style="margin-bottom: 15px;">Đánh giá từ người dùng khác (${otherRatings.length}):</h4>
+                // Format danh sách TẤT CẢ đánh giá (bao gồm cả của mình và người khác)
+                let allRatingsHtml = '';
+                if (allRatings.length > 0) {
+                    // Tách đánh giá của mình và người khác để hiển thị rõ ràng
+                    const myRatingId = myRating ? myRating.id : null;
+                    const otherRatings = allRatings.filter(r => r.id !== myRatingId);
+                    
+                    allRatingsHtml = `
+                        <div class="all-ratings" style="margin-top: 20px;">
+                            <h4 style="margin-bottom: 15px;">Tất cả đánh giá (${allRatings.length}):</h4>
                             <div style="max-height: 300px; overflow-y: auto;">
-                                ${otherRatings.map(rating => {
+                                ${allRatings.map(rating => {
                                     const ratingStars = '⭐'.repeat(rating.stars);
                                     const date = new Date(rating.created_at).toLocaleDateString('vi-VN');
+                                    const isMyRating = rating.id === myRatingId;
+                                    const bgColor = isMyRating ? '#e8f5e9' : '#f5f5f5';
+                                    const borderColor = isMyRating ? '#4caf50' : '#e0e0e0';
+                                    
                                     return `
-                                        <div style="border-bottom: 1px solid #eee; padding: 12px 0;">
+                                        <div style="border-left: 4px solid ${borderColor}; background: ${bgColor}; padding: 12px; margin-bottom: 10px; border-radius: 8px;">
                                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                                                <div style="font-size: 16px;">${ratingStars} ${rating.stars}/5</div>
+                                                <div style="font-size: 16px; font-weight: ${isMyRating ? '600' : '400'};">
+                                                    ${ratingStars} ${rating.stars}/5
+                                                    ${isMyRating ? '<span style="color: #2e7d32; font-size: 12px; margin-left: 8px;">(Của bạn)</span>' : ''}
+                                                </div>
                                                 <small style="color: #888;">${date}</small>
                                             </div>
                                             ${rating.comment ? `<p style="margin: 5px 0 0 0; color: #555; font-size: 14px;">"${rating.comment}"</p>` : ''}
@@ -499,9 +375,12 @@
                                 <option value="1" ${myRating && myRating.stars === 1 ? 'selected' : ''}>⭐ Cần cải thiện</option>
                             </select>
                             <textarea id="rating-comment" placeholder="Nhận xét của bạn...">${myRating ? (myRating.comment || '') : ''}</textarea>
-                            <button class="btn btn-primary" onclick="submitRating()">${myRating ? 'Cập nhật đánh giá' : 'Gửi đánh giá'}</button>
+                            <div style="display: flex; gap: 10px;">
+                                <button class="btn btn-primary" onclick="submitRating()" style="flex: 1;">${myRating ? 'Cập nhật đánh giá' : 'Đánh giá'}</button>
+                                ${myRating ? `<button class="btn btn-danger" onclick="deleteMyRating()" style="flex: 1;">🗑️ Xóa đánh giá</button>` : ''}
+                            </div>
                         </div>
-                        ${otherRatingsHtml}
+                        ${allRatingsHtml}
                     </div>
                 `;
                 
@@ -530,166 +409,42 @@
                     recipe_id: currentRecipe.id 
                 });
                 
-                // Cập nhật myRatingsMap
-                myRatingsMap[currentRecipe.id] = rating;
-                
                 showToast('Đánh giá thành công!', 'success');
                 closeDetailModal();
                 
-                // Reload recipes để hiển thị badge "Đã đánh giá"
+                // Reload recipes
                 const searchValue = document.getElementById('search-input').value;
-                await loadRecipes(searchValue);
+                await loadRatedRecipes(searchValue);
             } catch (error) {
                 showToast('Lỗi gửi đánh giá: ' + error.message, 'error');
             }
         }
 
-        // Create/Edit modal
-        function showCreateModal() {
-            document.getElementById('modal-title').textContent = 'Thêm công thức mới';
-            document.getElementById('recipe-form').reset();
-            currentRecipe = null;
-            document.getElementById('recipe-modal').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('recipe-modal').classList.remove('active');
-        }
-
-        function editRecipe() {
-            if (!currentRecipe) return;
-            
-            document.getElementById('modal-title').textContent = 'Sửa công thức';
-            document.getElementById('recipe-name').value = currentRecipe.name;
-            
-            // Extract category from tags
-            const category = currentRecipe.tags ? currentRecipe.tags.split(',')[0] : 'Lunch';
-            document.getElementById('recipe-category').value = category;
-            document.getElementById('recipe-time').value = currentRecipe.prep_time || 30;
-            document.getElementById('recipe-servings').value = currentRecipe.servings || 1;
-            document.getElementById('recipe-description').value = currentRecipe.description || '';
-            document.getElementById('recipe-instructions').value = currentRecipe.instructions;
-            document.getElementById('recipe-image-url').value = currentRecipe.image_url || '';
-            document.getElementById('recipe-calories').value = currentRecipe.calories || 0;
-            document.getElementById('recipe-protein').value = currentRecipe.protein || 0;
-            document.getElementById('recipe-carbs').value = currentRecipe.carbs || 0;
-            document.getElementById('recipe-fat').value = currentRecipe.fat || 0;
-            
-            // Load ingredients
-            const ingredientsList = document.getElementById('ingredients-list');
-            ingredientsList.innerHTML = '';
-            if (currentRecipe.ingredients && currentRecipe.ingredients.length > 0) {
-                currentRecipe.ingredients.forEach(ing => {
-                    const item = document.createElement('div');
-                    item.className = 'ingredient-item';
-                    item.innerHTML = `
-                        <input type="text" placeholder="Tên nguyên liệu" class="ing-name" value="${ing.name}" required>
-                        <input type="number" placeholder="Số lượng" class="ing-amount" step="0.1" value="${ing.amount}" required>
-                        <input type="text" placeholder="Đơn vị" class="ing-unit" value="${ing.unit}" required>
-                        <button type="button" class="btn-remove" onclick="removeIngredient(this)">🗑️</button>
-                    `;
-                    ingredientsList.appendChild(item);
-                });
-            } else {
-                // Add one empty ingredient if none
-                addIngredient();
-            }
-            
-            closeDetailModal();
-            document.getElementById('recipe-modal').classList.add('active');
-        }
-
-        async function deleteRecipe() {
-            if (!currentRecipe || !confirm('Xóa công thức này?')) return;
+        // Delete my rating
+        async function deleteMyRating() {
+            if (!currentRecipe || !confirm('Bạn có chắc muốn xóa đánh giá của mình cho món ăn này?')) return;
             
             try {
-                await apiDeleteRecipe(currentRecipe.id);
-                showToast('Đã xóa công thức', 'success');
+                await apiDeleteMyRating(currentRecipe.id);
+                showToast('Đã xóa đánh giá!', 'success');
                 closeDetailModal();
-                loadRecipes();
+                
+                // Reload recipes
+                const searchValue = document.getElementById('search-input').value;
+                await loadRatedRecipes(searchValue);
             } catch (error) {
-                showToast('Lỗi xóa: ' + error.message, 'error');
-            }
-        }
-
-        // Ingredients management
-        function addIngredient() {
-            const list = document.getElementById('ingredients-list');
-            const item = document.createElement('div');
-            item.className = 'ingredient-item';
-            item.innerHTML = `
-                <input type="text" placeholder="Tên nguyên liệu" class="ing-name" required>
-                <input type="number" placeholder="Số lượng" class="ing-amount" step="0.1" required>
-                <input type="text" placeholder="Đơn vị" class="ing-unit" required>
-                <button type="button" class="btn-remove" onclick="removeIngredient(this)">🗑️</button>
-            `;
-            list.appendChild(item);
-        }
-
-        function removeIngredient(btn) {
-            const list = document.getElementById('ingredients-list');
-            if (list.children.length > 1) {
-                btn.parentElement.remove();
-            }
-        }
-
-        // Save recipe
-        async function saveRecipe(e) {
-            e.preventDefault();
-            
-            try {
-                const ingredients = [];
-                document.querySelectorAll('.ingredient-item').forEach(item => {
-                    ingredients.push({
-                        name: item.querySelector('.ing-name').value,
-                        amount: parseFloat(item.querySelector('.ing-amount').value),
-                        unit: item.querySelector('.ing-unit').value
-                    });
-                });
-                
-                const dietary = Array.from(document.querySelectorAll('.checkbox-group input:checked'))
-                    .map(cb => cb.value).join(', ');
-                
-                const category = document.getElementById('recipe-category').value;
-                const recipeData = {
-                    name: document.getElementById('recipe-name').value,
-                    tags: category + (dietary ? ',' + dietary : ''),
-                    prep_time: parseInt(document.getElementById('recipe-time').value),
-                    servings: parseInt(document.getElementById('recipe-servings').value) || 1,
-                    description: document.getElementById('recipe-description').value,
-                    instructions: document.getElementById('recipe-instructions').value,
-                    image_url: document.getElementById('recipe-image-url').value || null,
-                    calories: parseFloat(document.getElementById('recipe-calories').value) || 0,
-                    protein: parseFloat(document.getElementById('recipe-protein').value) || 0,
-                    carbs: parseFloat(document.getElementById('recipe-carbs').value) || 0,
-                    fat: parseFloat(document.getElementById('recipe-fat').value) || 0,
-                    ingredients
-                };
-                
-                if (currentRecipe) {
-                    await apiUpdateRecipe(currentRecipe.id, recipeData);
-                    showToast('Đã cập nhật công thức', 'success');
-                } else {
-                    await apiCreateRecipe(recipeData);
-                    showToast('Đã thêm công thức mới', 'success');
-                }
-                
-                closeModal();
-                loadRecipes();
-            } catch (error) {
-                showToast('Lỗi lưu công thức: ' + error.message, 'error');
+                showToast('Lỗi xóa đánh giá: ' + error.message, 'error');
             }
         }
 
         // Load recipes on page load
-        loadRecipes();
+        loadRatedRecipes();
     </script>
 
     <style>
         .page-header {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
             margin-bottom: 30px;
         }
 
@@ -744,11 +499,11 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.15);
         }
 
-        .my-rating-badge {
+        .rated-badge {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: #4caf50;
+            background: #ff9800;
             color: white;
             padding: 5px 12px;
             border-radius: 20px;
@@ -875,93 +630,6 @@
             border-top: 2px solid #eee;
         }
 
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .ingredient-item {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .btn-remove {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #f44336;
-            color: white;
-        }
-
-        .checkbox-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .checkbox-group label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-
-        .error {
-            text-align: center;
-            padding: 20px;
-            color: #f44336;
-            background: #ffebee;
-            border-radius: 10px;
-        }
-
         .detail-section {
             margin: 20px 0;
             padding: 20px;
@@ -1032,6 +700,20 @@
             min-height: 80px;
             resize: vertical;
         }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </body>
 </html>
+

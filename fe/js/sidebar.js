@@ -25,6 +25,7 @@ async function renderSidebar(activePage = '') {
             navMenuHTML = `
                 <li><a href="dashboard.html" class="${activePage === 'dashboard' ? 'active' : ''}"><span>🏠</span> Dashboard</a></li>
                 <li><a href="recipes.html" class="${activePage === 'recipes' ? 'active' : ''}"><span>📖</span> Công thức</a></li>
+                <li><a href="ratings.html" class="${activePage === 'ratings' ? 'active' : ''}"><span>⭐</span> Đánh giá</a></li>
                 <li><a href="planner.html" class="${activePage === 'planner' ? 'active' : ''}"><span>📅</span> Lịch ăn</a></li>
                 <li><a href="shopping.html" class="${activePage === 'shopping' ? 'active' : ''}"><span>🛒</span> Shopping List</a></li>
                 <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
@@ -36,6 +37,7 @@ async function renderSidebar(activePage = '') {
         navMenuHTML = `
             <li><a href="dashboard.html" class="${activePage === 'dashboard' ? 'active' : ''}"><span>🏠</span> Dashboard</a></li>
             <li><a href="recipes.html" class="${activePage === 'recipes' ? 'active' : ''}"><span>📖</span> Công thức</a></li>
+            <li><a href="ratings.html" class="${activePage === 'ratings' ? 'active' : ''}"><span>⭐</span> Đánh giá</a></li>
             <li><a href="planner.html" class="${activePage === 'planner' ? 'active' : ''}"><span>📅</span> Lịch ăn</a></li>
             <li><a href="shopping.html" class="${activePage === 'shopping' ? 'active' : ''}"><span>🛒</span> Shopping List</a></li>
             <li><a href="#" onclick="logout()"><span>🚪</span> Đăng xuất</a></li>
@@ -106,6 +108,7 @@ function getActivePage() {
     const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
     if (currentPage.includes('dashboard')) return 'dashboard';
     if (currentPage.includes('recipes')) return 'recipes';
+    if (currentPage.includes('ratings')) return 'ratings';
     if (currentPage.includes('planner')) return 'planner';
     if (currentPage.includes('shopping')) return 'shopping';
     return '';

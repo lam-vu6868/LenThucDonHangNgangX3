@@ -3,8 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Lịch ăn - Meal Planner</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=1">
     <style>
         /* Calendar Styles */
         .week-nav {
@@ -546,10 +549,10 @@
         </div>
     </div>
 
-    <script src="js/config.js?v=2"></script>
-    <script src="js/api.js?v=2"></script>
-    <script src="js/utils.js?v=2"></script>
-    <script src="js/sidebar.js"></script>
+    <script src="js/config.js?v=4"></script>
+    <script src="js/api.js?v=4"></script>
+    <script src="js/utils.js?v=4"></script>
+    <script src="js/sidebar.js?v=4"></script>
     <script>
         checkAuth();
         setupPageReloadOnResume(); // Tự động reload khi đổi user
@@ -775,7 +778,8 @@
 
         async function loadRecipes() {
             try {
-                allRecipes = await apiGetRecipes();
+                // Lấy tất cả recipes (của user + công khai) để có thể kéo vào lịch
+                allRecipes = await apiGetRecipes({ my_only: false });
                 displayRecipesList();
             } catch (error) {
                 showToast('Lỗi tải công thức: ' + error.message, 'error');
@@ -1130,7 +1134,7 @@
             const notes = document.getElementById('ai-notes').value;
             const resultDiv = document.getElementById('ai-weekly-result');
             
-            resultDiv.innerHTML = '<div class="loading">⏳ AI đang tạo thực đơn và lưu vào database...</div>';
+            resultDiv.innerHTML = '<div class="loading">⏳ AI đang tạo thực đơn...</div>';
             
             try {
                 const response = await fetch(`${CONFIG.API_URL}/ai/suggest-weekly-plan`, {

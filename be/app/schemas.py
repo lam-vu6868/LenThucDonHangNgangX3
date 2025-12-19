@@ -92,6 +92,7 @@ class MealPlan(MealPlanBase):
     id: int
     owner_id: int
     recipe: Optional[Recipe] = None
+    owner: Optional[User] = None
     class Config:
         from_attributes = True
 
@@ -108,6 +109,8 @@ class Rating(RatingBase):
     id: int
     user_id: int
     created_at: datetime
+    user: Optional[User] = None
+    recipe: Optional[Recipe] = None
     class Config:
         from_attributes = True
 
