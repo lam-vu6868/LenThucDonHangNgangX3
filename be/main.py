@@ -35,7 +35,8 @@ async def add_utf8_header(request, call_next):
 origins = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
-    "http://localhost:3000",
+    "http://localhost:3000"
+    "len-thuc-don-hang-ngang-x3.vercel.app",
     "*"
 ]
 
