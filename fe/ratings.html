@@ -164,9 +164,16 @@
                 const avgRating = recipe.average_rating || 0;
                 const stars = '⭐'.repeat(Math.round(avgRating));
                 
+                // Hiển thị hình ảnh nếu có, nếu không thì dùng icon
+                const imageHtml = recipe.image_url 
+                    ? `<img src="${recipe.image_url}" alt="${recipe.name}" class="recipe-image-img" onerror="this.parentElement.innerHTML='<div class=\\'recipe-image-icon\\'>${icon}</div>'">`
+                    : `<div class="recipe-image-icon">${icon}</div>`;
+                
                 return `
                     <div class="recipe-card" onclick="showRecipeDetail(${recipe.id})" title="Click để xem chi tiết và đánh giá">
-                        <div class="recipe-image">${icon}</div>
+                        <div class="recipe-image">
+                            ${imageHtml}
+                        </div>
                         <div class="rated-badge" title="Món ăn đã được đánh giá">⭐ Đã đánh giá</div>
                         <div class="recipe-body">
                             <div class="recipe-title">${recipe.name}</div>
@@ -318,7 +325,15 @@
                     `;
                 }
                 
+                // Hiển thị hình ảnh trong detail modal nếu có
+                const detailImageHtml = recipe.image_url 
+                    ? `<div class="detail-image-section">
+                        <img src="${recipe.image_url}" alt="${recipe.name}" class="detail-image" onerror="this.style.display='none'">
+                       </div>`
+                    : '';
+                
                 document.getElementById('detail-content').innerHTML = `
+                    ${detailImageHtml}
                     <div class="detail-section">
                         <h3>Thông tin</h3>
                         <p><strong>Loại:</strong> ${category}</p>
@@ -520,6 +535,36 @@
             align-items: center;
             justify-content: center;
             font-size: 4em;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .recipe-image-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .recipe-image-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .detail-image-section {
+            margin-bottom: 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .detail-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            display: block;
         }
 
         .recipe-body {

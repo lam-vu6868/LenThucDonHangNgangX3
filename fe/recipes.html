@@ -298,9 +298,16 @@
                     ? `<div class="my-rating-badge" title="Bạn đã đánh giá ${hasMyRating.stars} sao">✅ Đã đánh giá</div>`
                     : '';
                 
+                // Hiển thị hình ảnh nếu có, nếu không thì dùng icon
+                const imageHtml = recipe.image_url 
+                    ? `<img src="${recipe.image_url}" alt="${recipe.name}" class="recipe-image-img" onerror="this.parentElement.innerHTML='${icon}'">`
+                    : `<div class="recipe-image-icon">${icon}</div>`;
+                
                 return `
                     <div class="recipe-card" onclick="showRecipeDetail(${recipe.id})" title="Click để xem chi tiết và đánh giá">
-                        <div class="recipe-image">${icon}</div>
+                        <div class="recipe-image">
+                            ${imageHtml}
+                        </div>
                         ${myRatingBadge}
                         <div class="recipe-body">
                             <div class="recipe-title">${recipe.name}</div>
@@ -442,7 +449,15 @@
                     `;
                 }
                 
+                // Hiển thị hình ảnh trong detail modal nếu có
+                const detailImageHtml = recipe.image_url 
+                    ? `<div class="detail-image-section">
+                        <img src="${recipe.image_url}" alt="${recipe.name}" class="detail-image" onerror="this.style.display='none'">
+                       </div>`
+                    : '';
+                
                 document.getElementById('detail-content').innerHTML = `
+                    ${detailImageHtml}
                     <div class="detail-section">
                         <h3>Thông tin</h3>
                         <p><strong>Loại:</strong> ${category}</p>
@@ -554,32 +569,38 @@
 
         function closeModal() {
             document.getElementById('recipe-modal').classList.remove('active');
+            // Reset currentRecipe khi đóng modal edit bằng nút Hủy
+            // (editRecipe() sẽ set lại currentRecipe khi mở modal từ detail)
+            currentRecipe = null;
         }
 
         function editRecipe() {
             if (!currentRecipe) return;
             
+            // Lưu currentRecipe vào biến tạm trước khi đóng modal detail
+            const recipeToEdit = currentRecipe;
+            
             document.getElementById('modal-title').textContent = 'Sửa công thức';
-            document.getElementById('recipe-name').value = currentRecipe.name;
+            document.getElementById('recipe-name').value = recipeToEdit.name;
             
             // Extract category from tags
-            const category = currentRecipe.tags ? currentRecipe.tags.split(',')[0] : 'Lunch';
+            const category = recipeToEdit.tags ? recipeToEdit.tags.split(',')[0] : 'Lunch';
             document.getElementById('recipe-category').value = category;
-            document.getElementById('recipe-time').value = currentRecipe.prep_time || 30;
-            document.getElementById('recipe-servings').value = currentRecipe.servings || 1;
-            document.getElementById('recipe-description').value = currentRecipe.description || '';
-            document.getElementById('recipe-instructions').value = currentRecipe.instructions;
-            document.getElementById('recipe-image-url').value = currentRecipe.image_url || '';
-            document.getElementById('recipe-calories').value = currentRecipe.calories || 0;
-            document.getElementById('recipe-protein').value = currentRecipe.protein || 0;
-            document.getElementById('recipe-carbs').value = currentRecipe.carbs || 0;
-            document.getElementById('recipe-fat').value = currentRecipe.fat || 0;
+            document.getElementById('recipe-time').value = recipeToEdit.prep_time || 30;
+            document.getElementById('recipe-servings').value = recipeToEdit.servings || 1;
+            document.getElementById('recipe-description').value = recipeToEdit.description || '';
+            document.getElementById('recipe-instructions').value = recipeToEdit.instructions;
+            document.getElementById('recipe-image-url').value = recipeToEdit.image_url || '';
+            document.getElementById('recipe-calories').value = recipeToEdit.calories || 0;
+            document.getElementById('recipe-protein').value = recipeToEdit.protein || 0;
+            document.getElementById('recipe-carbs').value = recipeToEdit.carbs || 0;
+            document.getElementById('recipe-fat').value = recipeToEdit.fat || 0;
             
             // Load ingredients
             const ingredientsList = document.getElementById('ingredients-list');
             ingredientsList.innerHTML = '';
-            if (currentRecipe.ingredients && currentRecipe.ingredients.length > 0) {
-                currentRecipe.ingredients.forEach(ing => {
+            if (recipeToEdit.ingredients && recipeToEdit.ingredients.length > 0) {
+                recipeToEdit.ingredients.forEach(ing => {
                     const item = document.createElement('div');
                     item.className = 'ingredient-item';
                     item.innerHTML = `
@@ -595,7 +616,10 @@
                 addIngredient();
             }
             
-            closeDetailModal();
+            // Đóng modal detail và giữ lại currentRecipe để dùng khi lưu
+            document.getElementById('detail-modal').classList.remove('active');
+            // Giữ nguyên currentRecipe để hàm saveRecipe biết đang edit
+            currentRecipe = recipeToEdit;
             document.getElementById('recipe-modal').classList.add('active');
         }
 
@@ -666,7 +690,7 @@
                     ingredients
                 };
                 
-                if (currentRecipe) {
+                if (currentRecipe && currentRecipe.id) {
                     await apiUpdateRecipe(currentRecipe.id, recipeData);
                     showToast('Đã cập nhật công thức', 'success');
                 } else {
@@ -674,6 +698,8 @@
                     showToast('Đã thêm công thức mới', 'success');
                 }
                 
+                // Reset currentRecipe sau khi lưu thành công
+                currentRecipe = null;
                 closeModal();
                 loadRecipes();
             } catch (error) {
@@ -765,6 +791,36 @@
             align-items: center;
             justify-content: center;
             font-size: 4em;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .recipe-image-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .recipe-image-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .detail-image-section {
+            margin-bottom: 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .detail-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            display: block;
         }
 
         .recipe-body {
