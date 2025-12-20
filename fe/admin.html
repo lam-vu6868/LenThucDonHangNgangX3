@@ -579,17 +579,30 @@
 
         document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const userId = document.getElementById('edit-user-id').value;
+            console.log('Form submitted!');
+            
+            const userId = parseInt(document.getElementById('edit-user-id').value);
             const role = document.getElementById('edit-user-role').value;
-            const isActive = document.getElementById('edit-user-active').value === 'true';
+            const isActiveStr = document.getElementById('edit-user-active').value;
+            const isActive = isActiveStr === 'true';
+            
+            const updateData = {
+                role: role,
+                is_active: isActive
+            };
+            
+            console.log('Updating user:', userId, updateData);
+            console.log('Calling apiUpdateUser...');
             
             try {
-                await apiUpdateUser(userId, { role, is_active: isActive });
+                const response = await apiUpdateUser(userId, updateData);
+                console.log('Update successful! Response:', response);
                 showToast('Cập nhật user thành công!', 'success');
                 closeEditUserModal();
                 await loadUsers();
                 await loadStats();
             } catch (error) {
+                console.error('Update failed:', error);
                 showToast('Lỗi cập nhật user: ' + error.message, 'error');
             }
         });

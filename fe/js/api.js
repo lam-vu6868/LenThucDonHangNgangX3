@@ -13,13 +13,20 @@ async function apiCall(endpoint, options = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
+    const url = `${API_URL}${endpoint}`;
+    console.log('API Call:', options.method || 'GET', url);
+    console.log('Headers:', headers);
+    console.log('Body:', options.body);
+
     let response;
     try {
-        response = await fetch(`${API_URL}${endpoint}`, {
+        response = await fetch(url, {
             ...options,
             headers
         });
+        console.log('Response status:', response.status);
     } catch (error) {
+        console.error('Network error:', error);
         // Network error hoặc CORS error
         throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc đảm bảo backend đang chạy.');
     }
@@ -248,6 +255,9 @@ async function apiGetUser(userId) {
 }
 
 async function apiUpdateUser(userId, data) {
+    console.log('apiUpdateUser called with:', userId, data);
+    console.log('Endpoint:', `/admin/users/${userId}`);
+    console.log('Request body:', JSON.stringify(data));
     return apiCall(`/admin/users/${userId}`, {
         method: 'PUT',
         body: JSON.stringify(data)

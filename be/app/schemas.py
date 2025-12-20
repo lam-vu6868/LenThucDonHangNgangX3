@@ -32,6 +32,11 @@ class UserProfileUpdate(BaseModel):
     gender: Optional[str] = None
     dietary_preferences: Optional[str] = None
 
+class UserAdminUpdate(BaseModel):
+    """Schema for admin to update user role and status"""
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+
 class User(UserBase):
     id: int
     is_active: bool
