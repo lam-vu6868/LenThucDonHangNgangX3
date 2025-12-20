@@ -49,7 +49,10 @@ async function apiCall(endpoint, options = {}) {
             window.location.href = 'index.html';
             return;
         }
-        throw new Error(data.detail || `HTTP ${response.status}: ${response.statusText}`);
+        // Tạo error với status code để có thể kiểm tra sau
+        const error = new Error(data.detail || `HTTP ${response.status}: ${response.statusText}`);
+        error.status = response.status;
+        throw error;
     }
 
     return data;
@@ -134,10 +137,18 @@ async function apiGetMyRating(id) {
     try {
         return await apiCall(`/recipes/${id}/ratings/my`);
     } catch (error) {
-        // Nếu chưa có đánh giá, trả về null thay vì throw error
-        if (error.message.includes('chưa đánh giá') || error.message.includes('404')) {
+        // Nếu chưa có đánh giá (404), trả về null thay vì throw error
+        // Kiểm tra status code hoặc error message
+        if (error.status === 404 || 
+            (error.message && (
+                error.message.includes('chưa đánh giá') || 
+                error.message.includes('404') || 
+                error.message.includes('Not Found') ||
+                error.message.toLowerCase().includes('not found')
+            ))) {
             return null;
         }
+        // Nếu là lỗi khác, vẫn throw để caller xử lý
         throw error;
     }
 }
