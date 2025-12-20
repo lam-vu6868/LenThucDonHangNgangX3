@@ -313,7 +313,7 @@
                 <!-- Tabs -->
                 <div class="admin-tabs">
                     <button class="admin-tab active" onclick="switchTab('users')">👥 Users</button>
-                    <button class="admin-tab" onclick="switchTab('recipes')">📖 Recipes</button>
+                    <button class="admin-tab" onclick="switchTab('recipes')">📖 Công Thức</button>
                     <button class="admin-tab" onclick="switchTab('meal-plans')">📅 Meal Plans</button>
                     <button class="admin-tab" onclick="switchTab('ratings')">⭐ Ratings</button>
                 </div>
@@ -579,30 +579,17 @@
 
         document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            console.log('Form submitted!');
-            
-            const userId = parseInt(document.getElementById('edit-user-id').value);
+            const userId = document.getElementById('edit-user-id').value;
             const role = document.getElementById('edit-user-role').value;
-            const isActiveStr = document.getElementById('edit-user-active').value;
-            const isActive = isActiveStr === 'true';
-            
-            const updateData = {
-                role: role,
-                is_active: isActive
-            };
-            
-            console.log('Updating user:', userId, updateData);
-            console.log('Calling apiUpdateUser...');
+            const isActive = document.getElementById('edit-user-active').value === 'true';
             
             try {
-                const response = await apiUpdateUser(userId, updateData);
-                console.log('Update successful! Response:', response);
+                await apiUpdateUser(userId, { role, is_active: isActive });
                 showToast('Cập nhật user thành công!', 'success');
                 closeEditUserModal();
                 await loadUsers();
                 await loadStats();
             } catch (error) {
-                console.error('Update failed:', error);
                 showToast('Lỗi cập nhật user: ' + error.message, 'error');
             }
         });

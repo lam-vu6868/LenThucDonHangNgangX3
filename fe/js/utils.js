@@ -69,7 +69,11 @@ function formatDate(dateString) {
 
 // Format number
 function formatNumber(num) {
-    return num.toFixed(1);
+    // Đảm bảo num luôn là số hợp lệ trước khi gọi toFixed
+    if (num == null || isNaN(num)) {
+        return '0.0';
+    }
+    return Number(num).toFixed(1);
 }
 
 // Show toast notification

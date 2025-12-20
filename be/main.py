@@ -35,9 +35,9 @@ async def add_utf8_header(request, call_next):
 origins = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
-    "http://localhost:3000",
-    "https://len-thuc-don-hang-ngang-x3.vercel.app",
-    "https://lenthucdonhangngangx3.onrender.com"
+    "http://localhost:3000"
+    "len-thuc-don-hang-ngang-x3.vercel.app",
+    "*"
 ]
 
 app.add_middleware(
