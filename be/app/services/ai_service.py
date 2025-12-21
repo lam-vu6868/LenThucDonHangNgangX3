@@ -1,6 +1,7 @@
 import google.generativeai as genai
 import os
 import json
+import re
 from dotenv import load_dotenv
 from datetime import date
 
@@ -13,6 +14,34 @@ if not GEMINI_API_KEY:
 
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemma-3-4b-it')  # Model Gemma còn quota
+
+def _clean_json_text(text: str) -> str:
+    """
+    Làm sạch JSON text để tránh lỗi parsing
+    - Loại bỏ trailing commas (dấu phẩy thừa trước } hoặc ])
+    - Loại bỏ comments (//, /* */)
+    - Sửa các lỗi JSON phổ biến
+    """
+    # Loại bỏ single-line comments (// ...)
+    text = re.sub(r'//.*?$', '', text, flags=re.MULTILINE)
+    
+    # Loại bỏ multi-line comments (/* ... */)
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)
+    
+    # Loại bỏ trailing commas trước } hoặc ]
+    # Pattern: tìm dấu phẩy theo sau bởi whitespace và } hoặc ]
+    text = re.sub(r',(\s*[}\]])', r'\1', text)
+    
+    # Sửa lỗi thiếu dấu phẩy giữa các elements trong array hoặc object
+    # Tìm pattern: }" { hoặc ]" [ (thiếu dấu phẩy giữa các phần tử)
+    text = re.sub(r'"\s*\n\s*"', '",\n"', text)  # Sửa thiếu dấu phẩy giữa các strings
+    text = re.sub(r'}\s*\n\s*{', '},\n{', text)  # Sửa thiếu dấu phẩy giữa các objects
+    
+    # Loại bỏ BOM (Byte Order Mark) nếu có
+    if text.startswith('\ufeff'):
+        text = text[1:]
+    
+    return text
 
 def calculate_bmr(gender: str, weight: float, height: float, age: int) -> float:
     """Tính BMR (Basal Metabolic Rate) theo công thức Mifflin-St Jeor"""
@@ -70,16 +99,26 @@ Trả về JSON với cấu trúc SAU (KHÔNG thêm markdown ```json):
         response = model.generate_content(prompt)
         result_text = response.text.strip()
         
-        # Xử lý nếu Gemini trả về có markdown
-        if result_text.startswith("```json"):
-            result_text = result_text.replace("```json", "").replace("```", "").strip()
+        # Xử lý markdown và text thừa
+        if "```" in result_text:
+            start = result_text.find("{")
+            end = result_text.rfind("}") + 1
+            if start != -1 and end != 0:
+                result_text = result_text[start:end]
         
         # Đảm bảo encoding UTF-8
         if isinstance(result_text, bytes):
             result_text = result_text.decode('utf-8')
         
+        # Làm sạch JSON
+        result_text = _clean_json_text(result_text)
+        
         recipe_data = json.loads(result_text)
         return recipe_data
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] JSON Parse Error in generate_recipe: {str(e)}")
+        print(f"[ERROR] Response: {result_text[:500]}")
+        raise Exception(f"AI trả về JSON không hợp lệ: {str(e)}")
     except Exception as e:
         raise Exception(f"Lỗi khi gọi Gemini API: {str(e)}")
 
@@ -148,15 +187,26 @@ Lưu ý:
         response = model.generate_content(prompt)
         result_text = response.text.strip()
         
-        if result_text.startswith("```json"):
-            result_text = result_text.replace("```json", "").replace("```", "").strip()
+        # Xử lý markdown và text thừa
+        if "```" in result_text:
+            start = result_text.find("{")
+            end = result_text.rfind("}") + 1
+            if start != -1 and end != 0:
+                result_text = result_text[start:end]
         
         # Đảm bảo encoding UTF-8
         if isinstance(result_text, bytes):
             result_text = result_text.decode('utf-8')
         
+        # Làm sạch JSON
+        result_text = _clean_json_text(result_text)
+        
         meal_plan = json.loads(result_text)
         return meal_plan
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] JSON Parse Error in suggest_weekly_meal_plan: {str(e)}")
+        print(f"[ERROR] Response: {result_text[:500]}")
+        raise Exception(f"AI trả về JSON không hợp lệ: {str(e)}")
     except Exception as e:
         raise Exception(f"Lỗi khi tạo thực đơn: {str(e)}")
 
@@ -193,15 +243,27 @@ Trả về JSON (KHÔNG markdown):
         response = model.generate_content(prompt)
         result_text = response.text.strip()
         
-        if result_text.startswith("```json"):
-            result_text = result_text.replace("```json", "").replace("```", "").strip()
+        # Xử lý markdown và text thừa
+        if "```" in result_text:
+            # Tìm array JSON [...]
+            start = result_text.find("[")
+            end = result_text.rfind("]") + 1
+            if start != -1 and end != 0:
+                result_text = result_text[start:end]
         
         # Đảm bảo encoding UTF-8
         if isinstance(result_text, bytes):
             result_text = result_text.decode('utf-8')
         
+        # Làm sạch JSON
+        result_text = _clean_json_text(result_text)
+        
         suggestions = json.loads(result_text)
         return suggestions
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] JSON Parse Error in get_recipe_suggestions: {str(e)}")
+        print(f"[ERROR] Response: {result_text[:500]}")
+        raise Exception(f"AI trả về JSON không hợp lệ: {str(e)}")
     except Exception as e:
         raise Exception(f"Lỗi khi tìm kiếm món ăn: {str(e)}")
 
@@ -259,20 +321,29 @@ Bạn là chuyên gia dinh dưỡng. Tạo thực đơn 7 ngày KÈM CÔNG THỨ
 - Hạn chế: {user_data.get("dietary_preferences", "Không có")}
 - Ghi chú: {user_data.get("notes", "Không có")}
 
-**QUAN TRỌNG - Trả về JSON hợp lệ (không có markdown, không có comments):**
+**YÊU CẦU JSON - Tuân thủ chặt chẽ format sau:**
+
+1. KHÔNG thêm markdown (```json hoặc ```)
+2. KHÔNG thêm comments trong JSON
+3. KHÔNG có trailing commas (dấu phẩy thừa trước }} hoặc ])
+4. Với field "instructions": Dùng dấu \\n để xuống dòng (ví dụ: "Bước 1: Làm A\\nBước 2: Làm B")
+5. Đảm bảo tất cả strings được đóng ngoặc kép đúng
+
+**Format JSON:**
 
 {{
     "total_calories_per_day": {target_calories},
     "recipes": [
         {{
             "name": "Cơm gà Hải Nam",
-            "description": "Món cơm gà thơm ngon",
-            "instructions": "Bước 1: Ướp gà\\nBước 2: Hấp gà 20 phút\\nBước 3: Nấu cơm",
+            "description": "Món cơm gà thơm ngon đơn giản",
+            "instructions": "Bước 1: Rửa gà và ướp với muối\\nBước 2: Hấp gà 25 phút\\nBước 3: Nấu cơm với nước luộc gà",
             "servings": 1,
-            "prep_time": 30,
+            "prep_time": 35,
             "ingredients": [
                 {{"name": "Gạo", "amount": 100, "unit": "gram"}},
-                {{"name": "Gà", "amount": 150, "unit": "gram"}}
+                {{"name": "Thịt gà", "amount": 150, "unit": "gram"}},
+                {{"name": "Tỏi", "amount": 10, "unit": "gram"}}
             ],
             "nutrition": {{
                 "calories": 450,
@@ -293,22 +364,21 @@ Bạn là chuyên gia dinh dưỡng. Tạo thực đơn 7 ngày KÈM CÔNG THỨ
     ]
 }}
 
-LƯU Ý QUAN TRỌNG:
-- PHẢI dùng tiếng Việt CÓ DẤU đầy đủ (ví dụ: "Cháo yến mạch chuối", "Cơm gà Hải Nam", "Bún cá")
-- Đủ 7 ngày (Monday -> Sunday)
-- **BẮT BUỘC: Tên món trong meal_plan["breakfast"]["name"], meal_plan["lunch"]["name"], meal_plan["dinner"]["name"] PHẢI KHỚP CHÍNH XÁC 100% với tên trong recipes[]["name"]**
-- Ví dụ: Nếu recipes có "Cháo yến mạch chuối" thì meal_plan phải dùng "Cháo yến mạch chuối", KHÔNG được dùng "Yến mạch với chuối" hay "Cháo yến mạch"
-- Tổng calories ≈ {target_calories}
-- CHỈ trả về JSON hợp lệ, KHÔNG thêm markdown hay text khác
-- Đảm bảo JSON encoding UTF-8
+**LƯU Ý BẮT BUỘC:**
+- Dùng tiếng Việt CÓ DẤU đầy đủ
+- Đủ 7 ngày (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
+- Tên món trong meal_plan PHẢI KHỚP 100% với tên trong recipes
+- Tổng calories/ngày ≈ {target_calories}
+- CHỈ trả về JSON, không thêm text nào khác
 """
     
     try:
         response = model.generate_content(prompt)
         result_text = response.text.strip()
         
-        # Xử lý markdown
-        if result_text.startswith("```"):
+        # Xử lý markdown và text thừa
+        # Loại bỏ markdown wrapper (```json ... ``` hoặc ``` ... ```)
+        if "```" in result_text:
             # Tìm vị trí bắt đầu và kết thúc của JSON
             start = result_text.find("{")
             end = result_text.rfind("}") + 1
@@ -319,17 +389,54 @@ LƯU Ý QUAN TRỌNG:
         if isinstance(result_text, bytes):
             result_text = result_text.decode('utf-8')
         
+        # Làm sạch JSON: loại bỏ comments, trailing commas
+        result_text = _clean_json_text(result_text)
+        
         # Log để debug
-        print(f"AI Response length: {len(result_text)} chars")
-        print(f"First 200 chars: {result_text[:200]}")
+        print(f"[AI] Response length: {len(result_text)} chars")
+        print(f"[AI] First 500 chars: {result_text[:500]}")
         
         # Parse JSON (mặc định Python json.loads() đã hỗ trợ UTF-8)
-        result = json.loads(result_text)
+        try:
+            result = json.loads(result_text)
+        except json.JSONDecodeError as parse_error:
+            # Nếu vẫn lỗi, thử xử lý thêm
+            print(f"[WARN] First JSON parse failed: {str(parse_error)}")
+            print(f"[WARN] Attempting additional cleanup...")
+            
+            # Thử loại bỏ các ký tự không hợp lệ
+            result_text = result_text.encode('utf-8', 'ignore').decode('utf-8')
+            
+            # Thử parse lại
+            try:
+                result = json.loads(result_text)
+                print(f"[SUCCESS] JSON parsed after additional cleanup")
+            except json.JSONDecodeError as second_error:
+                # Log chi tiết lỗi
+                print(f"[ERROR] JSON Parse Error: {str(second_error)}")
+                print(f"[ERROR] Line {second_error.lineno}, Column {second_error.colno}")
+                print(f"[ERROR] Error position {second_error.pos}")
+                print(f"[ERROR] Context (200 chars around error):")
+                error_start = max(0, second_error.pos - 100)
+                error_end = min(len(result_text), second_error.pos + 100)
+                print(f"[ERROR] ...{result_text[error_start:error_end]}...")
+                
+                # Lưu full response để debug
+                print(f"[ERROR] Full response saved for debugging")
+                with open("/tmp/ai_response_error.txt", "w", encoding="utf-8") as f:
+                    f.write(result_text)
+                
+                raise Exception(f"AI trả về JSON không hợp lệ. Vui lòng thử lại. Chi tiết: {str(second_error)}")
+        
         return result
     except json.JSONDecodeError as e:
         # Log lỗi chi tiết
-        print(f"JSON Error: {str(e)}")
-        print(f"Problem text: {result_text[max(0, e.pos-50):e.pos+50]}")
+        print(f"[ERROR] JSON Parse Error: {str(e)}")
+        print(f"[ERROR] Line {e.lineno}, Column {e.colno}")
+        print(f"[ERROR] Problem context (50 chars before/after):")
+        print(f"[ERROR] {result_text[max(0, e.pos-100):e.pos+100]}")
+        print(f"[ERROR] Full response:\n{result_text}")
         raise Exception(f"AI trả về JSON không hợp lệ. Vui lòng thử lại. Chi tiết: {str(e)}")
     except Exception as e:
+        print(f"[ERROR] General error: {str(e)}")
         raise Exception(f"Lỗi khi gọi AI: {str(e)}")
