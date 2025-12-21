@@ -7,22 +7,22 @@ from .database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
-    full_name = Column(String, nullable=True)
-    is_active = Column(Boolean, default=True)
-    role = Column(String, default="user")
+    id = Column(Integer, primary_key=True, index=True)  # ID người dùng (tự tăng)
+    email = Column(String, unique=True, index=True)  # Email đăng nhập (duy nhất)
+    hashed_password = Column(String)  # Mật khẩu đã mã hóa (bcrypt)
+    full_name = Column(String, nullable=True)  # Họ và tên
+    is_active = Column(Boolean, default=True)  # Trạng thái tài khoản (active/banned)
+    role = Column(String, default="user")  # Vai trò: "user" hoặc "admin"
 
     # Thông tin nhân trắc học (Tính BMR)
-    gender = Column(String, nullable=True)
-    date_of_birth = Column(Date, nullable=True)
-    height = Column(Float, nullable=True)
-    weight = Column(Float, nullable=True)
+    gender = Column(String, nullable=True)  # Giới tính: "male" hoặc "female"
+    date_of_birth = Column(Date, nullable=True)  # Ngày sinh (để tính tuổi)
+    height = Column(Float, nullable=True)  # Chiều cao (cm)
+    weight = Column(Float, nullable=True)  # Cân nặng (kg)
     
     # --- MỚI: Hạn chế ăn uống (Yêu cầu của thầy) ---
     # Lưu chuỗi: "vegan,peanut_free"
-    dietary_preferences = Column(String, nullable=True) 
+    dietary_preferences = Column(String, nullable=True)  # Hạn chế ăn uống (vegan, gluten-free...) 
 
     recipes = relationship("Recipe", back_populates="owner")
     meal_plans = relationship("MealPlan", back_populates="owner")
@@ -32,25 +32,25 @@ class User(Base):
 class Recipe(Base):
     __tablename__ = "recipes"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    description = Column(Text, nullable=True)
-    instructions = Column(Text, nullable=True)
-    image_url = Column(String, nullable=True)
+    id = Column(Integer, primary_key=True, index=True)  # ID món ăn (tự tăng)
+    name = Column(String, index=True)  # Tên món ăn (VD: Phở bò, Cơm gà)
+    description = Column(Text, nullable=True)  # Mô tả ngắn về món ăn
+    instructions = Column(Text, nullable=True)  # Hướng dẫn nấu (các bước)
+    image_url = Column(String, nullable=True)  # Link hình ảnh món ăn
     
     # --- MỚI: Chi tiết dinh dưỡng & Khẩu phần ---
     servings = Column(Integer, default=1)  # Khẩu phần mặc định (VD: 2 người)
-    prep_time = Column(Integer, nullable=True) # Thời gian nấu (phút)
+    prep_time = Column(Integer, nullable=True)  # Thời gian nấu (phút)
     
-    calories = Column(Float, nullable=True)
-    protein = Column(Float, nullable=True) # Gam
-    carbs = Column(Float, nullable=True)   # Gam
-    fat = Column(Float, nullable=True)     # Gam
+    calories = Column(Float, nullable=True)  # Năng lượng (kcal)
+    protein = Column(Float, nullable=True)  # Protein (gram)
+    carbs = Column(Float, nullable=True)  # Carbohydrate (gram)
+    fat = Column(Float, nullable=True)  # Chất béo (gram)
     
-    tags = Column(String, nullable=True)   # VD: "Breakfast,Low-Carb"
+    tags = Column(String, nullable=True)  # Thẻ phân loại (VD: "Breakfast,Low-Carb")
     # --------------------------------------------
 
-    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # ID người tạo món ăn
     
     owner = relationship("User", back_populates="recipes")
     ingredients = relationship("Ingredient", back_populates="recipe", cascade="all, delete-orphan")
@@ -61,28 +61,28 @@ class Recipe(Base):
 class Ingredient(Base):
     __tablename__ = "ingredients"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)
-    amount = Column(Float)
-    unit = Column(String)
+    id = Column(Integer, primary_key=True, index=True)  # ID nguyên liệu (tự tăng)
+    name = Column(String)  # Tên nguyên liệu (VD: Thịt bò, Bánh phở)
+    amount = Column(Float)  # Số lượng (VD: 200, 300)
+    unit = Column(String)  # Đơn vị (VD: gram, ml, muỗng)
 
-    recipe_id = Column(Integer, ForeignKey("recipes.id"))
+    recipe_id = Column(Integer, ForeignKey("recipes.id"))  # ID món ăn chứa nguyên liệu này
     recipe = relationship("Recipe", back_populates="ingredients")
 
 # --- 4. MEAL PLANS (KẾ HOẠCH ĂN UỐNG)---
 class MealPlan(Base):
     __tablename__ = "meal_plans"
 
-    id = Column(Integer, primary_key=True, index=True)
-    date = Column(Date, index=True)
-    meal_type = Column(String) # Breakfast/Lunch/Dinner
+    id = Column(Integer, primary_key=True, index=True)  # ID lịch ăn (tự tăng)
+    date = Column(Date, index=True)  # Ngày ăn (VD: 2025-12-23)
+    meal_type = Column(String)  # Bữa ăn: "Breakfast"/"Lunch"/"Dinner"
 
     # --- MỚI: Số người ăn thực tế (để nhân Shopping List) ---
-    servings = Column(Integer, default=1) 
+    servings = Column(Integer, default=1)  # Số khẩu phần (VD: nấu cho 4 người)
     # -------------------------------------------------------
 
-    owner_id = Column(Integer, ForeignKey("users.id"))
-    recipe_id = Column(Integer, ForeignKey("recipes.id"))
+    owner_id = Column(Integer, ForeignKey("users.id"))  # ID người tạo lịch ăn
+    recipe_id = Column(Integer, ForeignKey("recipes.id"))  # ID món ăn trong lịch
 
     owner = relationship("User", back_populates="meal_plans")
     recipe = relationship("Recipe", back_populates="meal_plans")
@@ -91,16 +91,16 @@ class MealPlan(Base):
 class Rating(Base):
     __tablename__ = "ratings"
 
-    id = Column(Integer, primary_key=True, index=True)
-    stars = Column(Integer)
-    comment = Column(Text, nullable=True)
+    id = Column(Integer, primary_key=True, index=True)  # ID đánh giá (tự tăng)
+    stars = Column(Integer)  # Số sao đánh giá (1-5 sao)
+    comment = Column(Text, nullable=True)  # Bình luận/nhận xét về món ăn
     
     # --- MỚI: Thời gian đánh giá ---
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())  # Thời gian đánh giá (tự động)
     # -------------------------------
 
-    user_id = Column(Integer, ForeignKey("users.id"))
-    recipe_id = Column(Integer, ForeignKey("recipes.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))  # ID người đánh giá
+    recipe_id = Column(Integer, ForeignKey("recipes.id"))  # ID món ăn được đánh giá
 
     user = relationship("User", back_populates="ratings")
     recipe = relationship("Recipe", back_populates="ratings")
@@ -109,18 +109,18 @@ class Rating(Base):
 class ShoppingListItem(Base):
     __tablename__ = "shopping_list_items"
 
-    id = Column(Integer, primary_key=True, index=True)
-    ingredient_name = Column(String, index=True)  # Tên nguyên liệu
-    amount = Column(Float)  # Số lượng
-    unit = Column(String)  # Đơn vị
-    is_purchased = Column(Boolean, default=False)  # Đã mua chưa
+    id = Column(Integer, primary_key=True, index=True)  # ID item mua sắm (tự tăng)
+    ingredient_name = Column(String, index=True)  # Tên nguyên liệu cần mua
+    amount = Column(Float)  # Số lượng cần mua
+    unit = Column(String)  # Đơn vị (gram, ml, cái...)
+    is_purchased = Column(Boolean, default=False)  # Đã mua chưa (checkbox)
     
     recipe_id = Column(Integer, ForeignKey("recipes.id"), nullable=True)  # Món ăn nào (có thể null nếu tự thêm)
-    user_id = Column(Integer, ForeignKey("users.id"))  # User nào
+    user_id = Column(Integer, ForeignKey("users.id"))  # ID người tạo shopping list
     
     # Thời gian
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())  # Thời gian tạo
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())  # Thời gian cập nhật
 
     user = relationship("User")
     recipe = relationship("Recipe")
