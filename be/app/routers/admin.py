@@ -60,8 +60,7 @@ def get_user(
 @router.put("/users/{user_id}")
 def update_user(
     user_id: int,
-    role: Optional[str] = None,
-    is_active: Optional[bool] = None,
+    update_data: schemas.UserUpdate,
     db: Session = Depends(get_db),
     admin: models.User = Depends(require_admin)
 ):
@@ -70,13 +69,13 @@ def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User không tồn tại")
     
-    if role is not None:
-        if role not in ["user", "admin"]:
+    if update_data.role is not None:
+        if update_data.role not in ["user", "admin"]:
             raise HTTPException(status_code=400, detail="Role không hợp lệ")
-        user.role = role
+        user.role = update_data.role
     
-    if is_active is not None:
-        user.is_active = is_active
+    if update_data.is_active is not None:
+        user.is_active = update_data.is_active
     
     db.commit()
     db.refresh(user)

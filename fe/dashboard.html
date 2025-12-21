@@ -463,84 +463,6 @@
     <title>Dashboard - Meal Planner</title>
     <link rel="stylesheet" href="css/style.css?v=1">
 </head>
-<body>
-    <div class="main-layout">
-        <!-- Sidebar will be loaded by sidebar.js -->
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="container">
-                <h1>Xin chào ! 👋</h1>
-
-
-                <!-- Stats Cards -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">📖</div>
-                        <div class="stat-info">
-                            <h3 id="recipe-count">0</h3>
-                            <p>Công thức</p>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">📅</div>
-                        <div class="stat-info">
-                            <h3 id="plan-count">0</h3>
-                            <p>Bữa ăn tuần này</p>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">🔥</div>
-                        <div class="stat-info">
-                            <h3 id="bmr-value">0</h3>
-                            <p>BMR (kcal/ngày)</p>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">🛒</div>
-                        <div class="stat-info">
-                            <h3 id="shopping-items">0</h3>
-                            <p>Nguyên liệu cần mua</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="section">
-                    <h2>Thao tác nhanh</h2>
-                    <div class="quick-actions">
-                        <a href="#" onclick="showProfileModal(); return false;" class="action-btn">
-                            <span>👤</span>
-                            <p>Cập nhật thông tin</p>
-                        </a>
-                        <a href="recipes.html" class="action-btn">
-                            <span>➕</span>
-                            <p>Thêm công thức</p>
-                        </a>
-                        <a href="planner.html" class="action-btn">
-                            <span>📅</span>
-                            <p>Lập kế hoạch</p>
-                        </a>
-                        <a href="shopping.html" class="action-btn">
-                            <span>🛒</span>
-                            <p>Shopping nào</p>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Recent Meals -->
-                <div class="section">
-                    <h2>Bữa ăn tuần này</h2>
-                    <div id="recent-meals" class="meals-list">
-                        <p class="empty-state">Chưa có bữa ăn nào. Hãy thêm vào lịch!</p>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
 
     <!-- Profile Update Modal -->
     <div id="profile-modal" class="modal">
@@ -603,10 +525,6 @@
         </div>
     </div>
 
-    <script src="js/config.js?v=4"></script>
-    <script src="js/api.js?v=4"></script>
-    <script src="js/utils.js?v=4"></script>
-    <script src="js/sidebar.js?v=4"></script>
     <script>
         // Check authentication
         if (!checkAuth()) {
