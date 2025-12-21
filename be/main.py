@@ -24,20 +24,27 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Middleware để đảm bảo response UTF-8
+# Middleware để đảm bảo response UTF-8 (chỉ thêm charset, không override content-type)
 @app.middleware("http")
 async def add_utf8_header(request, call_next):
     response = await call_next(request)
-    response.headers["Content-Type"] = "application/json; charset=utf-8"
+    # Chỉ thêm charset=utf-8 nếu chưa có charset trong Content-Type
+    content_type = response.headers.get("Content-Type", "")
+    if "charset" not in content_type.lower():
+        # Giữ nguyên content-type hiện tại và chỉ thêm charset
+        if content_type:
+            response.headers["Content-Type"] = f"{content_type}; charset=utf-8"
+        else:
+            response.headers["Content-Type"] = "application/json; charset=utf-8"
     return response
 
 # Cấu hình CORS
 origins = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
-    "http://localhost:3000",
-    "https://len-thuc-don-hang-ngang-x3.vercel.app",
-    "https://lenthucdonhangngangx3.onrender.com"
+    "http://localhost:3000"
+    "len-thuc-don-hang-ngang-x3.vercel.app",
+    "*"
 ]
 
 app.add_middleware(

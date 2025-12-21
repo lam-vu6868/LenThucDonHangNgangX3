@@ -57,10 +57,11 @@ def get_user(
         raise HTTPException(status_code=404, detail="User không tồn tại")
     return user
 
-@router.put("/users/{user_id}", response_model=schemas.User)
+@router.put("/users/{user_id}")
 def update_user(
     user_id: int,
-    user_data: schemas.UserAdminUpdate,
+    role: Optional[str] = None,
+    is_active: Optional[bool] = None,
     db: Session = Depends(get_db),
     admin: models.User = Depends(require_admin)
 ):
@@ -69,13 +70,13 @@ def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User không tồn tại")
     
-    if user_data.role is not None:
-        if user_data.role not in ["user", "admin"]:
+    if role is not None:
+        if role not in ["user", "admin"]:
             raise HTTPException(status_code=400, detail="Role không hợp lệ")
-        user.role = user_data.role
+        user.role = role
     
-    if user_data.is_active is not None:
-        user.is_active = user_data.is_active
+    if is_active is not None:
+        user.is_active = is_active
     
     db.commit()
     db.refresh(user)
@@ -150,40 +151,13 @@ def delete_recipe(
     admin: models.User = Depends(require_admin)
 ):
     """Xóa recipe (admin có thể xóa bất kỳ recipe nào)"""
-    try:
-        recipe = db.query(models.Recipe).filter(models.Recipe.id == recipe_id).first()
-        if not recipe:
-            raise HTTPException(status_code=404, detail="Recipe không tồn tại")
-        
-        # Kiểm tra dữ liệu liên kết trước khi xóa
-        meal_plans_count = db.query(models.MealPlan).filter(models.MealPlan.recipe_id == recipe_id).count()
-        ratings_count = db.query(models.Rating).filter(models.Rating.recipe_id == recipe_id).count()
-        shopping_items_count = db.query(models.ShoppingListItem).filter(models.ShoppingListItem.recipe_id == recipe_id).count()
-        
-        if meal_plans_count > 0 or ratings_count > 0 or shopping_items_count > 0:
-            related_items = []
-            if meal_plans_count > 0:
-                related_items.append(f"{meal_plans_count} meal plan(s)")
-            if ratings_count > 0:
-                related_items.append(f"{ratings_count} rating(s)")
-            if shopping_items_count > 0:
-                related_items.append(f"{shopping_items_count} shopping list item(s)")
-            raise HTTPException(
-                status_code=400,
-                detail=f"Không thể xóa recipe này vì đang có dữ liệu liên kết: {', '.join(related_items)}. Vui lòng xóa các dữ liệu liên kết trước."
-            )
-        
-        db.delete(recipe)
-        db.commit()
-        return {"message": "Đã xóa recipe thành công"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        import traceback
-        error_msg = str(e)
-        traceback.print_exc()  # In lỗi ra console để debug
-        raise HTTPException(status_code=500, detail=f"Lỗi xóa recipe: {error_msg}")
+    recipe = db.query(models.Recipe).filter(models.Recipe.id == recipe_id).first()
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe không tồn tại")
+    
+    db.delete(recipe)
+    db.commit()
+    return {"message": "Đã xóa recipe thành công"}
 
 # --- 4. QUẢN LÝ MEAL PLANS ---
 @router.get("/meal-plans", response_model=List[schemas.MealPlan])

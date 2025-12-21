@@ -161,7 +161,8 @@
                 // Extract category from tags
                 const category = recipe.tags ? recipe.tags.split(',')[0] : 'Lunch';
                 const icon = getRecipeIcon(category);
-                const avgRating = recipe.average_rating || 0;
+                // Đảm bảo avgRating luôn là số hợp lệ
+                const avgRating = recipe.average_rating != null ? Number(recipe.average_rating) || 0 : 0;
                 const stars = '⭐'.repeat(Math.round(avgRating));
                 
                 // Hiển thị hình ảnh nếu có, nếu không thì dùng icon
@@ -181,7 +182,7 @@
                                 <span>⏱️ ${recipe.prep_time || 30} phút</span>
                                 <span>🔥 ${Math.round(recipe.calories || 0)} kcal</span>
                             </div>
-                            ${recipe.average_rating ? `<div class="recipe-rating">${stars} ${avgRating.toFixed(1)}</div>` : ''}
+                            ${recipe.average_rating != null && recipe.average_rating > 0 ? `<div class="recipe-rating">${stars} ${avgRating.toFixed(1)}</div>` : ''}
                             <div class="recipe-tags">
                                 <span class="tag">${category}</span>
                                 ${recipe.tags ? recipe.tags.split(',').slice(1).map(tag => 
@@ -250,30 +251,47 @@
                 const recipe = await apiGetRecipe(id);
                 currentRecipe = recipe;
                 
-                // Load đánh giá của user hiện tại và tất cả đánh giá
-                let myRating = null;
-                let allRatings = [];
-                
+                // Lấy thông tin user hiện tại để kiểm tra owner
+                let currentUser = null;
                 try {
-                    myRating = await apiGetMyRating(id);
+                    currentUser = await apiGetCurrentUser();
                 } catch (error) {
-                    // User chưa đánh giá, không sao
+                    console.error('Error getting current user:', error);
                 }
                 
+                // Kiểm tra xem công thức có thuộc về user hiện tại không
+                const isMyRecipe = currentUser && recipe.owner_id === currentUser.id;
+                
+                // Load đánh giá của user hiện tại và tất cả đánh giá
+                // apiGetMyRating sẽ trả về null nếu user chưa đánh giá (404), không throw error
+                const myRating = await apiGetMyRating(id);
+                
+                let allRatings = [];
                 try {
                     allRatings = await apiGetRecipeRatings(id);
                 } catch (error) {
                     // Không load được đánh giá, không sao
+                    console.warn('Không thể load đánh giá:', error.message);
                 }
                 
                 const modal = document.getElementById('detail-modal');
                 document.getElementById('detail-name').textContent = recipe.name;
                 
-                const avgRating = recipe.average_rating || 0;
+                // Đảm bảo avgRating luôn là số hợp lệ
+                const avgRating = recipe.average_rating != null ? Number(recipe.average_rating) || 0 : 0;
                 const stars = '⭐'.repeat(Math.round(avgRating));
                 
                 // Extract category from tags (first tag)
                 const category = recipe.tags ? recipe.tags.split(',')[0] : 'Lunch';
+                
+                // Nút thêm vào công thức của tôi (chỉ hiển thị nếu không phải công thức của user)
+                const addToMyRecipesBtn = !isMyRecipe ? `
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success" onclick="addRecipeToMyList()" style="width: 100%; padding: 12px; font-size: 1em;">
+                            ➕ Thêm vào công thức của tôi
+                        </button>
+                    </div>
+                ` : '';
                 
                 // Format đánh giá của user hiện tại
                 let myRatingHtml = '';
@@ -334,6 +352,7 @@
                 
                 document.getElementById('detail-content').innerHTML = `
                     ${detailImageHtml}
+                    ${addToMyRecipesBtn}
                     <div class="detail-section">
                         <h3>Thông tin</h3>
                         <p><strong>Loại:</strong> ${category}</p>
@@ -346,7 +365,7 @@
                         <h3>Dinh dưỡng (mỗi phần)</h3>
                         <div class="nutrition-grid">
                             <div class="nutrition-item">
-                                <span class="nutrition-value">${Math.round(recipe.calories)}</span>
+                                <span class="nutrition-value">${Math.round(recipe.calories || 0)}</span>
                                 <span class="nutrition-label">Calories</span>
                             </div>
                             <div class="nutrition-item">
@@ -379,7 +398,7 @@
                     </div>
                     
                     <div class="detail-section">
-                        <h3>Đánh giá ${recipe.average_rating ? `(${stars} ${avgRating.toFixed(1)})` : ''}</h3>
+                        <h3>Đánh giá ${recipe.average_rating != null && recipe.average_rating > 0 ? `(${stars} ${avgRating.toFixed(1)})` : ''}</h3>
                         ${myRatingHtml}
                         <div class="rating-form">
                             <select id="rating-stars">
@@ -449,6 +468,43 @@
                 await loadRatedRecipes(searchValue);
             } catch (error) {
                 showToast('Lỗi xóa đánh giá: ' + error.message, 'error');
+            }
+        }
+
+        // Thêm công thức vào danh sách của tôi
+        async function addRecipeToMyList() {
+            if (!currentRecipe) return;
+            
+            try {
+                // Tạo bản sao công thức với owner_id là user hiện tại
+                const recipeData = {
+                    name: currentRecipe.name,
+                    description: currentRecipe.description || null,
+                    instructions: currentRecipe.instructions || null,
+                    image_url: currentRecipe.image_url || null,
+                    servings: currentRecipe.servings || 1,
+                    prep_time: currentRecipe.prep_time || null,
+                    calories: currentRecipe.calories || null,
+                    protein: currentRecipe.protein || null,
+                    carbs: currentRecipe.carbs || null,
+                    fat: currentRecipe.fat || null,
+                    tags: currentRecipe.tags || null,
+                    ingredients: currentRecipe.ingredients.map(ing => ({
+                        name: ing.name,
+                        amount: ing.amount,
+                        unit: ing.unit
+                    }))
+                };
+                
+                await apiCreateRecipe(recipeData);
+                showToast('Đã thêm công thức vào danh sách của bạn!', 'success');
+                
+                // Đóng modal và reload để cập nhật UI
+                closeDetailModal();
+                const searchValue = document.getElementById('search-input').value;
+                await loadRatedRecipes(searchValue);
+            } catch (error) {
+                showToast('Lỗi thêm công thức: ' + error.message, 'error');
             }
         }
 
@@ -761,4 +817,6 @@
     </style>
 </body>
 </html>
+
+
 

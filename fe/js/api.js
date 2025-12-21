@@ -13,22 +13,20 @@ async function apiCall(endpoint, options = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const url = `${API_URL}${endpoint}`;
-    console.log('API Call:', options.method || 'GET', url);
-    console.log('Headers:', headers);
-    console.log('Body:', options.body);
-
     let response;
     try {
-        response = await fetch(url, {
+        response = await fetch(`${API_URL}${endpoint}`, {
             ...options,
             headers
         });
-        console.log('Response status:', response.status);
     } catch (error) {
-        console.error('Network error:', error);
         // Network error hoặc CORS error
         throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng hoặc đảm bảo backend đang chạy.');
+    }
+
+    // Nếu có option ignore404 và status là 404, trả về null ngay lập tức
+    if (!response.ok && options.ignore404 && response.status === 404) {
+        return null;
     }
 
     // Kiểm tra content-type trước khi parse JSON
@@ -56,6 +54,7 @@ async function apiCall(endpoint, options = {}) {
             window.location.href = 'index.html';
             return;
         }
+        
         // Tạo error với status code để có thể kiểm tra sau
         const error = new Error(data.detail || `HTTP ${response.status}: ${response.statusText}`);
         error.status = response.status;
@@ -141,23 +140,10 @@ async function apiRateRecipe(id, rating) {
 }
 
 async function apiGetMyRating(id) {
-    try {
-        return await apiCall(`/recipes/${id}/ratings/my`);
-    } catch (error) {
-        // Nếu chưa có đánh giá (404), trả về null thay vì throw error
-        // Kiểm tra status code hoặc error message
-        if (error.status === 404 || 
-            (error.message && (
-                error.message.includes('chưa đánh giá') || 
-                error.message.includes('404') || 
-                error.message.includes('Not Found') ||
-                error.message.toLowerCase().includes('not found')
-            ))) {
-            return null;
-        }
-        // Nếu là lỗi khác, vẫn throw để caller xử lý
-        throw error;
-    }
+    // Sử dụng ignore404 để xử lý 404 một cách im lặng
+    // Đây là trường hợp bình thường khi user chưa đánh giá món ăn
+    const result = await apiCall(`/recipes/${id}/ratings/my`, { ignore404: true });
+    return result; // Sẽ trả về null nếu 404, hoặc data nếu thành công
 }
 
 async function apiGetRecipeRatings(id) {
@@ -266,9 +252,6 @@ async function apiGetUser(userId) {
 }
 
 async function apiUpdateUser(userId, data) {
-    console.log('apiUpdateUser called with:', userId, data);
-    console.log('Endpoint:', `/admin/users/${userId}`);
-    console.log('Request body:', JSON.stringify(data));
     return apiCall(`/admin/users/${userId}`, {
         method: 'PUT',
         body: JSON.stringify(data)

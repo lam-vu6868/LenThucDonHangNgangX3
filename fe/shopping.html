@@ -246,7 +246,8 @@
                 // Extract category from tags
                 const category = recipe.tags ? recipe.tags.split(',')[0] : 'Lunch';
                 const icon = getRecipeIcon(category);
-                const avgRating = recipe.average_rating || 0;
+                // Đảm bảo avgRating luôn là số hợp lệ
+                const avgRating = recipe.average_rating != null ? Number(recipe.average_rating) || 0 : 0;
                 const stars = '⭐'.repeat(Math.round(avgRating));
                 
                 // Check purchase status
