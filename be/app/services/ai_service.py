@@ -15,6 +15,52 @@ if not GEMINI_API_KEY:
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemma-3-4b-it')  # Model Gemma còn quota
 
+def _generate_with_config(prompt: str):
+    """
+    Wrapper để generate content với config tối ưu cho JSON
+    """
+    generation_config = {
+        "temperature": 0.3,  # Giảm temperature để output ổn định hơn
+        "top_p": 0.8,
+        "top_k": 40,
+    }
+    return model.generate_content(prompt, generation_config=generation_config)
+
+def _fix_json_at_position(text: str, error_pos: int) -> str:
+    """
+    Cố gắng sửa lỗi JSON tại vị trí cụ thể
+    """
+    # Lấy context xung quanh vị trí lỗi
+    start = max(0, error_pos - 100)
+    end = min(len(text), error_pos + 100)
+    context = text[start:end]
+    
+    print(f"[FIX] Trying to fix JSON at position {error_pos}")
+    print(f"[FIX] Context: ...{context}...")
+    
+    # Nếu lỗi "Expecting ','" thì thử thêm dấu phẩy
+    # Tìm ký tự tại vị trí lỗi
+    if error_pos < len(text):
+        char_at_error = text[error_pos]
+        prev_char = text[error_pos - 1] if error_pos > 0 else ''
+        
+        print(f"[FIX] Char at error: '{char_at_error}', Prev char: '{prev_char}'")
+        
+        # Nếu ký tự hiện tại là " và trước đó là } hoặc ] hoặc số
+        if char_at_error == '"' and prev_char in ['}', ']', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+            # Thêm dấu phẩy trước ký tự này
+            text = text[:error_pos] + ',' + text[error_pos:]
+            print(f"[FIX] Added comma before quote at position {error_pos}")
+            return text
+        
+        # Nếu ký tự hiện tại là { và trước đó là } 
+        if char_at_error == '{' and prev_char == '}':
+            text = text[:error_pos] + ',' + text[error_pos:]
+            print(f"[FIX] Added comma between }} and {{ at position {error_pos}")
+            return text
+    
+    return text
+
 def _clean_json_text(text: str) -> str:
     """
     Làm sạch JSON text để tránh lỗi parsing
@@ -22,6 +68,10 @@ def _clean_json_text(text: str) -> str:
     - Loại bỏ comments (//, /* */)
     - Sửa các lỗi JSON phổ biến
     """
+    # Loại bỏ BOM (Byte Order Mark) nếu có
+    if text.startswith('\ufeff'):
+        text = text[1:]
+    
     # Loại bỏ single-line comments (// ...)
     text = re.sub(r'//.*?$', '', text, flags=re.MULTILINE)
     
@@ -29,17 +79,24 @@ def _clean_json_text(text: str) -> str:
     text = re.sub(r'/\*.*?\*/', '', text, flags=re.DOTALL)
     
     # Loại bỏ trailing commas trước } hoặc ]
-    # Pattern: tìm dấu phẩy theo sau bởi whitespace và } hoặc ]
     text = re.sub(r',(\s*[}\]])', r'\1', text)
     
     # Sửa lỗi thiếu dấu phẩy giữa các elements trong array hoặc object
-    # Tìm pattern: }" { hoặc ]" [ (thiếu dấu phẩy giữa các phần tử)
     text = re.sub(r'"\s*\n\s*"', '",\n"', text)  # Sửa thiếu dấu phẩy giữa các strings
     text = re.sub(r'}\s*\n\s*{', '},\n{', text)  # Sửa thiếu dấu phẩy giữa các objects
+    text = re.sub(r']\s*\n\s*\[', '],\n[', text)  # Sửa thiếu dấu phẩy giữa các arrays
     
-    # Loại bỏ BOM (Byte Order Mark) nếu có
-    if text.startswith('\ufeff'):
-        text = text[1:]
+    # Sửa lỗi thiếu dấu phẩy sau đóng ngoặc nhọn hoặc vuông, trước mở ngoặc nhọn
+    # Pattern: }{ hoặc }[ hoặc ]{ (không có dấu phẩy giữa)
+    text = re.sub(r'}\s*{', '},{', text)
+    text = re.sub(r'}\s*\[', '},[', text)
+    text = re.sub(r']\s*{', '],{', text)
+    
+    # Sửa lỗi với key-value: "key": value "key2" (thiếu dấu phẩy)
+    # Tìm pattern: số hoặc false/true/null theo sau bởi whitespace và "
+    text = re.sub(r'(\d|true|false|null)\s+(")', r'\1,\2', text)
+    text = re.sub(r'(})\s+(")', r'\1,\2', text)
+    text = re.sub(r'(])\s+(")', r'\1,\2', text)
     
     return text
 
@@ -373,7 +430,7 @@ Bạn là chuyên gia dinh dưỡng. Tạo thực đơn 7 ngày KÈM CÔNG THỨ
 """
     
     try:
-        response = model.generate_content(prompt)
+        response = _generate_with_config(prompt)
         result_text = response.text.strip()
         
         # Xử lý markdown và text thừa
@@ -400,33 +457,45 @@ Bạn là chuyên gia dinh dưỡng. Tạo thực đơn 7 ngày KÈM CÔNG THỨ
         try:
             result = json.loads(result_text)
         except json.JSONDecodeError as parse_error:
-            # Nếu vẫn lỗi, thử xử lý thêm
+            # Nếu vẫn lỗi, thử sửa tại vị trí lỗi
             print(f"[WARN] First JSON parse failed: {str(parse_error)}")
-            print(f"[WARN] Attempting additional cleanup...")
+            print(f"[WARN] Error at line {parse_error.lineno}, column {parse_error.colno}, position {parse_error.pos}")
             
-            # Thử loại bỏ các ký tự không hợp lệ
-            result_text = result_text.encode('utf-8', 'ignore').decode('utf-8')
+            # Thử sửa tại vị trí lỗi
+            result_text = _fix_json_at_position(result_text, parse_error.pos)
             
             # Thử parse lại
             try:
                 result = json.loads(result_text)
-                print(f"[SUCCESS] JSON parsed after additional cleanup")
+                print(f"[SUCCESS] JSON parsed after position fix")
             except json.JSONDecodeError as second_error:
-                # Log chi tiết lỗi
-                print(f"[ERROR] JSON Parse Error: {str(second_error)}")
-                print(f"[ERROR] Line {second_error.lineno}, Column {second_error.colno}")
-                print(f"[ERROR] Error position {second_error.pos}")
-                print(f"[ERROR] Context (200 chars around error):")
-                error_start = max(0, second_error.pos - 100)
-                error_end = min(len(result_text), second_error.pos + 100)
-                print(f"[ERROR] ...{result_text[error_start:error_end]}...")
+                # Thử thêm một lần nữa với cleanup bổ sung
+                print(f"[WARN] Second parse failed, trying additional cleanup...")
+                result_text = result_text.encode('utf-8', 'ignore').decode('utf-8')
                 
-                # Lưu full response để debug
-                print(f"[ERROR] Full response saved for debugging")
-                with open("/tmp/ai_response_error.txt", "w", encoding="utf-8") as f:
-                    f.write(result_text)
-                
-                raise Exception(f"AI trả về JSON không hợp lệ. Vui lòng thử lại. Chi tiết: {str(second_error)}")
+                try:
+                    result = json.loads(result_text)
+                    print(f"[SUCCESS] JSON parsed after encoding cleanup")
+                except json.JSONDecodeError as third_error:
+                    # Log chi tiết lỗi
+                    print(f"[ERROR] JSON Parse Error (final): {str(third_error)}")
+                    print(f"[ERROR] Line {third_error.lineno}, Column {third_error.colno}")
+                    print(f"[ERROR] Error position {third_error.pos}")
+                    print(f"[ERROR] Context (300 chars around error):")
+                    error_start = max(0, third_error.pos - 150)
+                    error_end = min(len(result_text), third_error.pos + 150)
+                    print(f"[ERROR] ...{result_text[error_start:error_end]}...")
+                    
+                    # Lưu full response để debug (nếu có quyền ghi file)
+                    try:
+                        import tempfile
+                        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.json', delete=False) as f:
+                            f.write(result_text)
+                            print(f"[ERROR] Full response saved to: {f.name}")
+                    except:
+                        pass
+                    
+                    raise Exception(f"AI trả về JSON không hợp lệ. Vui lòng thử lại. Chi tiết: {str(third_error)}")
         
         return result
     except json.JSONDecodeError as e:
