@@ -195,6 +195,8 @@ def delete_recipe(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
+    from sqlalchemy.exc import IntegrityError
+    
     recipe = db.query(models.Recipe).filter(models.Recipe.id == recipe_id).first()
     if not recipe:
         raise HTTPException(status_code=404, detail="Không tìm thấy công thức")
@@ -202,9 +204,32 @@ def delete_recipe(
     if recipe.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Bạn không có quyền xóa công thức này")
     
-    db.delete(recipe)
-    db.commit()
-    return {"message": f"Đã xóa công thức: {recipe.name}"}
+    # Kiểm tra xem recipe có đang được sử dụng không
+    meal_plans_count = db.query(models.MealPlan).filter(models.MealPlan.recipe_id == recipe_id).count()
+    ratings_count = db.query(models.Rating).filter(models.Rating.recipe_id == recipe_id).count()
+    
+    if meal_plans_count > 0 or ratings_count > 0:
+        references = []
+        if meal_plans_count > 0:
+            references.append(f"{meal_plans_count} lịch ăn")
+        if ratings_count > 0:
+            references.append(f"{ratings_count} đánh giá")
+        
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Không thể xóa món ăn '{recipe.name}' vì đang được tham chiếu bởi {' và '.join(references)}. Vui lòng xóa các tham chiếu trước."
+        )
+    
+    try:
+        db.delete(recipe)
+        db.commit()
+        return {"message": f"Đã xóa công thức: {recipe.name}"}
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Không thể xóa món ăn này vì đang được tham chiếu bởi dữ liệu khác trong hệ thống."
+        )
 
 # --- 6. ĐÁNH GIÁ CÔNG THỨC ---
 @router.post("/{recipe_id}/ratings", response_model=schemas.Rating)

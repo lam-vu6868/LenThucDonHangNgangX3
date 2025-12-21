@@ -150,13 +150,38 @@ def delete_recipe(
     admin: models.User = Depends(require_admin)
 ):
     """Xóa recipe (admin có thể xóa bất kỳ recipe nào)"""
+    from sqlalchemy.exc import IntegrityError
+    
     recipe = db.query(models.Recipe).filter(models.Recipe.id == recipe_id).first()
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe không tồn tại")
     
-    db.delete(recipe)
-    db.commit()
-    return {"message": "Đã xóa recipe thành công"}
+    # Kiểm tra xem recipe có đang được sử dụng không
+    meal_plans_count = db.query(models.MealPlan).filter(models.MealPlan.recipe_id == recipe_id).count()
+    ratings_count = db.query(models.Rating).filter(models.Rating.recipe_id == recipe_id).count()
+    
+    if meal_plans_count > 0 or ratings_count > 0:
+        references = []
+        if meal_plans_count > 0:
+            references.append(f"{meal_plans_count} lịch ăn")
+        if ratings_count > 0:
+            references.append(f"{ratings_count} đánh giá")
+        
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Không thể xóa món ăn này vì đang được tham chiếu bởi {' và '.join(references)}. Vui lòng xóa các tham chiếu trước."
+        )
+    
+    try:
+        db.delete(recipe)
+        db.commit()
+        return {"message": f"Đã xóa recipe '{recipe.name}' thành công"}
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Không thể xóa món ăn này vì đang được tham chiếu bởi dữ liệu khác trong hệ thống."
+        )
 
 # --- 4. QUẢN LÝ MEAL PLANS ---
 @router.get("/meal-plans", response_model=List[schemas.MealPlan])
