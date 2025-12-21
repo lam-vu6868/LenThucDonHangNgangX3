@@ -296,7 +296,8 @@ Bạn là chuyên gia dinh dưỡng. Tạo thực đơn 7 ngày KÈM CÔNG THỨ
 LƯU Ý QUAN TRỌNG:
 - PHẢI dùng tiếng Việt CÓ DẤU đầy đủ (ví dụ: "Cháo yến mạch chuối", "Cơm gà Hải Nam", "Bún cá")
 - Đủ 7 ngày (Monday -> Sunday)
-- Tên món trong recipes khớp với meal_plan
+- **BẮT BUỘC: Tên món trong meal_plan["breakfast"]["name"], meal_plan["lunch"]["name"], meal_plan["dinner"]["name"] PHẢI KHỚP CHÍNH XÁC 100% với tên trong recipes[]["name"]**
+- Ví dụ: Nếu recipes có "Cháo yến mạch chuối" thì meal_plan phải dùng "Cháo yến mạch chuối", KHÔNG được dùng "Yến mạch với chuối" hay "Cháo yến mạch"
 - Tổng calories ≈ {target_calories}
 - CHỈ trả về JSON hợp lệ, KHÔNG thêm markdown hay text khác
 - Đảm bảo JSON encoding UTF-8

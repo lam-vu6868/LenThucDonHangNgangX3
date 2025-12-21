@@ -197,6 +197,7 @@
 
                 // Get current week
                 const week = getCurrentWeek();
+                console.log('Current week:', week);
 
                 // Load stats
                 const [recipes, plans, shoppingItems] = await Promise.all([
@@ -204,6 +205,9 @@
                     apiGetMealPlans(week.start, week.end),
                     apiGetShoppingListItems().catch(() => []) // Load shopping list items từ database
                 ]);
+
+                console.log('Loaded plans:', plans);
+                console.log('Plans count:', plans.length);
 
                 // Update stats
                 document.getElementById('recipe-count').textContent = recipes.length || 0;
@@ -230,14 +234,22 @@
                 return;
             }
 
-            container.innerHTML = plans.map(plan => `
-                <div class="meal-item">
-                    <div class="meal-date">${formatDate(plan.date)}</div>
-                    <div class="meal-type">${plan.meal_type}</div>
-                    <div class="meal-recipe">${plan.recipe.name}</div>
-                    <div class="meal-servings">${plan.servings} phần</div>
-                </div>
-            `).join('');
+            console.log('Plans data:', plans);
+
+            container.innerHTML = plans.map(plan => {
+                const recipeName = plan.recipe?.name || plan.recipe_id || 'Không có tên';
+                const mealType = plan.meal_type || 'N/A';
+                const servings = plan.servings || 1;
+                
+                return `
+                    <div class="meal-item">
+                        <div class="meal-date">${formatDate(plan.date)}</div>
+                        <div class="meal-type">${mealType}</div>
+                        <div class="meal-recipe">${recipeName}</div>
+                        <div class="meal-servings">${servings} phần</div>
+                    </div>
+                `;
+            }).join('');
         }
 
         // Load on page ready

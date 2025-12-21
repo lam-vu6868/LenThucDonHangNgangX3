@@ -130,11 +130,11 @@ function hideLoading() {
 // Get current week dates
 function getCurrentWeek() {
     const today = new Date();
-    const first = today.getDate() - today.getDay() + 1; // Monday
-    const last = first + 6; // Sunday
-
-    const monday = new Date(today.setDate(first));
-    const sunday = new Date(today.setDate(last));
+    const day = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
+    
+    const monday = new Date(today.setDate(diff));
+    const sunday = new Date(today.setDate(diff + 6));
 
     return {
         start: monday.toISOString().split('T')[0],

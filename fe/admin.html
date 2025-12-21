@@ -262,6 +262,51 @@
             padding: 40px;
             color: #999;
         }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .pagination-info {
+            margin: 0 15px;
+            color: #666;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -367,6 +412,11 @@
                             </tbody>
                         </table>
                     </div>
+                    <div id="recipes-pagination" class="pagination" style="display: none;">
+                        <button onclick="changeRecipesPage(-1)" id="recipes-prev-btn">← Trước</button>
+                        <span id="recipes-page-info" class="pagination-info"></span>
+                        <button onclick="changeRecipesPage(1)" id="recipes-next-btn">Sau →</button>
+                    </div>
                 </div>
 
                 <!-- Meal Plans Tab -->
@@ -389,6 +439,11 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div id="meal-plans-pagination" class="pagination" style="display: none;">
+                        <button onclick="changeMealPlansPage(-1)" id="meal-plans-prev-btn">← Trước</button>
+                        <span id="meal-plans-page-info" class="pagination-info"></span>
+                        <button onclick="changeMealPlansPage(1)" id="meal-plans-next-btn">Sau →</button>
                     </div>
                 </div>
 
@@ -413,6 +468,11 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div id="ratings-pagination" class="pagination" style="display: none;">
+                        <button onclick="changeRatingsPage(-1)" id="ratings-prev-btn">← Trước</button>
+                        <span id="ratings-page-info" class="pagination-info"></span>
+                        <button onclick="changeRatingsPage(1)" id="ratings-next-btn">Sau →</button>
                     </div>
                 </div>
             </div>
@@ -513,9 +573,18 @@
             
             // Load data for the tab
             if (tabName === 'users') loadUsers();
-            else if (tabName === 'recipes') loadRecipes();
-            else if (tabName === 'meal-plans') loadMealPlans();
-            else if (tabName === 'ratings') loadRatings();
+            else if (tabName === 'recipes') {
+                currentRecipesPage = 1;
+                loadRecipes();
+            }
+            else if (tabName === 'meal-plans') {
+                currentMealPlansPage = 1;
+                loadMealPlans();
+            }
+            else if (tabName === 'ratings') {
+                currentRatingsPage = 1;
+                loadRatings();
+            }
         }
 
         // Users management
@@ -631,10 +700,16 @@
 
         // Recipes management
         let allRecipes = [];
+        let filteredRecipes = [];
+        let currentRecipesPage = 1;
+        const ITEMS_PER_PAGE = 20;
+
         async function loadRecipes() {
             try {
                 allRecipes = await apiGetAllRecipes();
-                renderRecipes(allRecipes);
+                filteredRecipes = allRecipes;
+                currentRecipesPage = 1;
+                renderRecipes();
             } catch (error) {
                 console.error('Error loading recipes:', error);
                 showToast('Lỗi tải recipes: ' + error.message, 'error');
@@ -643,14 +718,27 @@
             }
         }
 
-        function renderRecipes(recipes) {
+        function renderRecipes() {
             const tbody = document.getElementById('recipes-table-body');
-            if (!recipes || recipes.length === 0) {
+            const pagination = document.getElementById('recipes-pagination');
+            const pageInfo = document.getElementById('recipes-page-info');
+            const prevBtn = document.getElementById('recipes-prev-btn');
+            const nextBtn = document.getElementById('recipes-next-btn');
+            
+            if (!filteredRecipes || filteredRecipes.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Không có recipes nào</td></tr>';
+                pagination.style.display = 'none';
                 return;
             }
             
-            tbody.innerHTML = recipes.map(recipe => `
+            // Tính toán pagination
+            const totalPages = Math.ceil(filteredRecipes.length / ITEMS_PER_PAGE);
+            const startIndex = (currentRecipesPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const pageRecipes = filteredRecipes.slice(startIndex, endIndex);
+            
+            // Render table
+            tbody.innerHTML = pageRecipes.map(recipe => `
                 <tr>
                     <td>${recipe.id}</td>
                     <td>${recipe.name}</td>
@@ -661,14 +749,34 @@
                     </td>
                 </tr>
             `).join('');
+            
+            // Update pagination
+            if (totalPages > 1) {
+                pagination.style.display = 'flex';
+                pageInfo.textContent = `Trang ${currentRecipesPage} / ${totalPages} (${filteredRecipes.length} mục)`;
+                prevBtn.disabled = currentRecipesPage === 1;
+                nextBtn.disabled = currentRecipesPage === totalPages;
+            } else {
+                pagination.style.display = 'none';
+            }
+        }
+
+        function changeRecipesPage(direction) {
+            const totalPages = Math.ceil(filteredRecipes.length / ITEMS_PER_PAGE);
+            const newPage = currentRecipesPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentRecipesPage = newPage;
+                renderRecipes();
+            }
         }
 
         function filterRecipes() {
             const query = document.getElementById('search-recipes').value.toLowerCase();
-            const filtered = allRecipes.filter(recipe => 
+            filteredRecipes = allRecipes.filter(recipe => 
                 recipe.name.toLowerCase().includes(query)
             );
-            renderRecipes(filtered);
+            currentRecipesPage = 1;
+            renderRecipes();
         }
 
         async function deleteRecipe(recipeId) {
@@ -685,10 +793,14 @@
         }
 
         // Meal Plans management
+        let allMealPlans = [];
+        let currentMealPlansPage = 1;
+
         async function loadMealPlans() {
             try {
-                const plans = await apiGetAllMealPlans();
-                renderMealPlans(plans);
+                allMealPlans = await apiGetAllMealPlans();
+                currentMealPlansPage = 1;
+                renderMealPlans();
             } catch (error) {
                 console.error('Error loading meal plans:', error);
                 showToast('Lỗi tải meal plans: ' + error.message, 'error');
@@ -697,14 +809,27 @@
             }
         }
 
-        function renderMealPlans(plans) {
+        function renderMealPlans() {
             const tbody = document.getElementById('meal-plans-table-body');
-            if (!plans || plans.length === 0) {
+            const pagination = document.getElementById('meal-plans-pagination');
+            const pageInfo = document.getElementById('meal-plans-page-info');
+            const prevBtn = document.getElementById('meal-plans-prev-btn');
+            const nextBtn = document.getElementById('meal-plans-next-btn');
+            
+            if (!allMealPlans || allMealPlans.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Không có meal plans nào</td></tr>';
+                pagination.style.display = 'none';
                 return;
             }
             
-            tbody.innerHTML = plans.map(plan => `
+            // Tính toán pagination
+            const totalPages = Math.ceil(allMealPlans.length / ITEMS_PER_PAGE);
+            const startIndex = (currentMealPlansPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const pagePlans = allMealPlans.slice(startIndex, endIndex);
+            
+            // Render table
+            tbody.innerHTML = pagePlans.map(plan => `
                 <tr>
                     <td>${plan.id}</td>
                     <td>${plan.date}</td>
@@ -716,6 +841,25 @@
                     </td>
                 </tr>
             `).join('');
+            
+            // Update pagination
+            if (totalPages > 1) {
+                pagination.style.display = 'flex';
+                pageInfo.textContent = `Trang ${currentMealPlansPage} / ${totalPages} (${allMealPlans.length} mục)`;
+                prevBtn.disabled = currentMealPlansPage === 1;
+                nextBtn.disabled = currentMealPlansPage === totalPages;
+            } else {
+                pagination.style.display = 'none';
+            }
+        }
+
+        function changeMealPlansPage(direction) {
+            const totalPages = Math.ceil(allMealPlans.length / ITEMS_PER_PAGE);
+            const newPage = currentMealPlansPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentMealPlansPage = newPage;
+                renderMealPlans();
+            }
         }
 
         async function deleteMealPlan(planId) {
@@ -732,10 +876,14 @@
         }
 
         // Ratings management
+        let allRatings = [];
+        let currentRatingsPage = 1;
+
         async function loadRatings() {
             try {
-                const ratings = await apiGetAllRatings();
-                renderRatings(ratings);
+                allRatings = await apiGetAllRatings();
+                currentRatingsPage = 1;
+                renderRatings();
             } catch (error) {
                 console.error('Error loading ratings:', error);
                 const errorMsg = error.message || 'Lỗi không xác định';
@@ -754,14 +902,27 @@
             }
         }
 
-        function renderRatings(ratings) {
+        function renderRatings() {
             const tbody = document.getElementById('ratings-table-body');
-            if (!ratings || ratings.length === 0) {
+            const pagination = document.getElementById('ratings-pagination');
+            const pageInfo = document.getElementById('ratings-page-info');
+            const prevBtn = document.getElementById('ratings-prev-btn');
+            const nextBtn = document.getElementById('ratings-next-btn');
+            
+            if (!allRatings || allRatings.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Không có ratings nào</td></tr>';
+                pagination.style.display = 'none';
                 return;
             }
             
-            tbody.innerHTML = ratings.map(rating => `
+            // Tính toán pagination
+            const totalPages = Math.ceil(allRatings.length / ITEMS_PER_PAGE);
+            const startIndex = (currentRatingsPage - 1) * ITEMS_PER_PAGE;
+            const endIndex = startIndex + ITEMS_PER_PAGE;
+            const pageRatings = allRatings.slice(startIndex, endIndex);
+            
+            // Render table
+            tbody.innerHTML = pageRatings.map(rating => `
                 <tr>
                     <td>${rating.id}</td>
                     <td>${rating.user?.full_name || rating.user?.email || rating.user_id || 'N/A'}</td>
@@ -774,6 +935,25 @@
                     </td>
                 </tr>
             `).join('');
+            
+            // Update pagination
+            if (totalPages > 1) {
+                pagination.style.display = 'flex';
+                pageInfo.textContent = `Trang ${currentRatingsPage} / ${totalPages} (${allRatings.length} mục)`;
+                prevBtn.disabled = currentRatingsPage === 1;
+                nextBtn.disabled = currentRatingsPage === totalPages;
+            } else {
+                pagination.style.display = 'none';
+            }
+        }
+
+        function changeRatingsPage(direction) {
+            const totalPages = Math.ceil(allRatings.length / ITEMS_PER_PAGE);
+            const newPage = currentRatingsPage + direction;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentRatingsPage = newPage;
+                renderRatings();
+            }
         }
 
         async function deleteRating(ratingId) {

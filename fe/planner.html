@@ -790,16 +790,29 @@
             const container = document.getElementById('recipes-list');
             const searchTerm = document.getElementById('recipe-search-input')?.value.toLowerCase() || '';
             
-            const filteredRecipes = allRecipes.filter(recipe => 
+            // Lọc theo search term
+            let filteredRecipes = allRecipes.filter(recipe => 
                 recipe.name.toLowerCase().includes(searchTerm)
             );
             
-            if (filteredRecipes.length === 0) {
+            // Loại bỏ trùng lặp theo tên (chỉ giữ lại 1 recipe cho mỗi tên)
+            const seenNames = new Set();
+            const uniqueRecipes = [];
+            
+            for (const recipe of filteredRecipes) {
+                const nameLower = recipe.name.toLowerCase().trim();
+                if (!seenNames.has(nameLower)) {
+                    seenNames.add(nameLower);
+                    uniqueRecipes.push(recipe);
+                }
+            }
+            
+            if (uniqueRecipes.length === 0) {
                 container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Không tìm thấy món ăn nào</p>';
                 return;
             }
             
-            container.innerHTML = filteredRecipes.map(recipe => `
+            container.innerHTML = uniqueRecipes.map(recipe => `
                 <div class="recipe-chip" draggable="true" data-recipe-id="${recipe.id}" 
                      data-recipe-name="${recipe.name}"
                      ondragstart="dragStart(event)">
@@ -1137,6 +1150,9 @@
             resultDiv.innerHTML = '<div class="loading">⏳ AI đang tạo thực đơn...</div>';
             
             try {
+                console.log('Calling AI suggest-weekly-plan API...');
+                console.log('Request data:', { activity_level: activityLevel, goal: goal, notes: notes, start_date: currentWeekStart });
+                
                 const response = await fetch(`${CONFIG.API_URL}/ai/suggest-weekly-plan`, {
                     method: 'POST',
                     headers: {
@@ -1151,12 +1167,24 @@
                     })
                 });
                 
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Lỗi tạo thực đơn');
+                    let errorMessage = 'Lỗi tạo thực đơn';
+                    try {
+                        const error = await response.json();
+                        errorMessage = error.detail || errorMessage;
+                        console.error('API Error:', error);
+                    } catch (e) {
+                        const errorText = await response.text();
+                        errorMessage = errorText || errorMessage;
+                        console.error('API Error (text):', errorText);
+                    }
+                    throw new Error(errorMessage);
                 }
                 
                 const data = await response.json();
+                console.log('AI Response:', data);
                 
                 // QUAN TRỌNG: Reload recipes và meal plans để hiển thị món mới
                 await loadRecipes();
@@ -1170,13 +1198,17 @@
                         <p>📅 Đã thêm ${data.meal_plans_created} bữa ăn vào lịch</p>
                         <button class="btn btn-primary" onclick="closeAIWeeklyModal();" style="margin-top: 15px;">
                             ✅ Đóng và xem lịch
-                        </button> ăn
                         </button>
                     </div>
                 `;
                 
             } catch (error) {
-                resultDiv.innerHTML = `<div class="error">❌ ${error.message}</div>`;
+                console.error('Error generating AI weekly plan:', error);
+                resultDiv.innerHTML = `<div class="error" style="padding: 20px; background: #f8d7da; border-radius: 10px; color: #721c24;">
+                    <h3>❌ Lỗi tạo thực đơn</h3>
+                    <p>${error.message}</p>
+                    <p style="font-size: 0.9em; margin-top: 10px; color: #666;">Vui lòng kiểm tra kết nối database hoặc thử lại sau.</p>
+                </div>`;
             }
         }
 
